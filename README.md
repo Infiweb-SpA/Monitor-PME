@@ -10,9 +10,9 @@ Copia y pega la siguiente plantilla en el nuevo chat donde vas a empezar a desar
 ### Master Prompt para el Asistente de Código
 
 ```markdown
-# PROMPT DE INICIALIZACIÓN DE PROYECTO: EduGest PME
+# PROMPT DE INICIALIZACIÓN DE PROYECTO: Monitor PME
 
-Actúa como un Desarrollador Senior de Software en Python/Flask y Arquitecto de Software. Necesito que comencemos a construir el backend y frontend de **EduGest**, un módulo cuantitativo para el Plan de Mejoramiento Educativo (PME).
+Actúa como un Desarrollador Senior de Software en Python/Flask y Arquitecto de Software. Necesito que comencemos a construir el backend y frontend de **Monitor PME**, un módulo cuantitativo para el Plan de Mejoramiento Educativo (PME).
 
 ---
 
@@ -32,7 +32,6 @@ Todo el código de la aplicación debe residir dentro del directorio raíz `app/
 Estructura requerida:
 
 ```text
-edugest-pme/
 ├── app/
 │   ├── __init__.py          # Application Factory (create_app)
 │   ├── config.py            # Configuración de la App y SQLite
@@ -76,9 +75,9 @@ edugest-pme/
 
 1. **Límite de Archivos**: NINGÚN archivo `.py` puede superar las **500 líneas de código**. Separa la lógica en módulos dentro de `services/` si una ruta o modelo empieza a crecer.
 2. **Población Inicial (`seed.py`)**: Toda la primera base de datos SQLite debe poblarse mediante un script independiente `seed.py`. Debe generar:
-* 1 Usuario Admin / Director de prueba (`admin@liceobicentenario.cl` / `admin123`).
-* 1 Establecimiento de prueba ("Liceo Bicentenario de Excelencia", RBD: `12345-6`).
-* 4 Cursos (5° Básico a 8° Básico).
+* 1 Usuario Admin / Director de prueba (`admin@liceo.cl` / `admin123`).
+* 1 Establecimiento de prueba ("Liceo de Excelencia", RBD: `78332482-2`).
+* 4 Cursos (5° Básico a 8° Básico(son cursos de prueba, en la implementacion final deben estar contemplados todos los cursos del establecimiento desde parvulario hasta 4to medio)).
 * 10 Acciones PME en distintas dimensiones con presupuestos y estados.
 * Un dataset de 200+ registros mensuales pseudo-reales con notas (1.0 a 7.0), asistencias y ejecuciones de talleres PME para calcular algoritmos reales de IEA y Correlación de Pearson.
 
