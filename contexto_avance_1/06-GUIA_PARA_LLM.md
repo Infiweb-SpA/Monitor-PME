@@ -37,6 +37,8 @@
    - Botones primarios: `bg-indigo-600 hover:bg-indigo-700`
    - Badges de estado: cyan (En Ejecución), verde (Finalizada), gris (Planificada)
 
+8. **Limite de tamaño templates** : ningún archivo ".html" puede superar las **800 líneas de código**.
+
 ---
 
 ## Patrones de código reutilizables
@@ -177,14 +179,3 @@ python run.py
 ```
 
 ---
-
-## Contacto / Contexto previo
-
-Este proyecto fue iniciado por **Paul Citronico** (usuario). Trabaja en el proyecto **Edugest** (Flask/Python). La última sesión previa creó reportes de notas sumativas/calificativas con promedio automático por estudiante.
-
-**Módulos existentes en Edugest original (NO en este repo):**
-- Evaluaciones y calificaciones (notas sumativas/calificativas)
-- Unidades didácticas
-- Reportes de notas
-
-**Este repo es un MÓDULO NUEVO** llamado Monitor PME, enfocado en análisis cuantitativo del Plan de Mejoramiento Educativo.
