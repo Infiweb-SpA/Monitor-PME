@@ -42,7 +42,8 @@
             </div>
             <h4 class="text-lg font-bold text-gray-900 mb-2">Matriz de Rendición</h4>
             <p class="text-sm text-gray-500 mb-6 leading-relaxed">Sabana de datos detallada de gastos y acciones vinculadas para control financiero.</p>
-            <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
+            <!-- ENLACE REAL A LA RUTA DE EXCEL -->
+            <a href="{{ url_for('reportes.exportar_excel') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
                 <i class="fas fa-download"></i> Descargar Excel
             </a>
         </div>
@@ -74,11 +75,11 @@
                     <div class="flex gap-3">
                         <div class="relative flex-1">
                             <i class="far fa-calendar absolute left-3 top-3 text-gray-400 text-sm"></i>
-                            <input type="text" value="01/03/2024" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <input type="text" value="01/03/2026" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
                         <div class="relative flex-1">
                             <i class="far fa-calendar absolute left-3 top-3 text-gray-400 text-sm"></i>
-                            <input type="text" value="31/12/2024" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <input type="text" value="31/12/2026" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
                     </div>
                 </div>
@@ -133,8 +134,8 @@
                         <i class="fas fa-envelope text-teal-200"></i>
                     </div>
                     <div class="p-6 text-center">
-                        <h4 class="text-lg font-bold text-gray-900 mb-1">Reporte de Avance PME 2024</h4>
-                        <p class="text-xs text-gray-500 mb-6">Periodo: Mar 2024 - Dic 2024</p>
+                        <h4 class="text-lg font-bold text-gray-900 mb-1">Reporte de Avance PME 2026</h4>
+                        <p class="text-xs text-gray-500 mb-6">Periodo: Mar 2026 - Dic 2026</p>
                         <div class="space-y-3 mb-6">
                             <div class="h-3 bg-gray-100 rounded-full w-3/4 mx-auto"></div>
                             <div class="h-3 bg-gray-100 rounded-full w-full mx-auto"></div>

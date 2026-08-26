@@ -4,10 +4,12 @@ Incluye:
 - Índice de Eficiencia de Acción (IEA)
 - Correlación de Pearson
 - Algoritmo de Semáforo / Proyección de Cumplimiento
+- Orquestador de Base de Datos (procesar_indicadores_accion)
 """
 import numpy as np
-import pandas as pd
-from scipy.stats import pearsonr
+from app.extensions import db
+from app.models.pme import AccionPME
+from app.models.metrics import RegistroAppPonderado, ParticipacionAccion, IndicadorAccion
 
 
 def calcular_iea(gasto_ejecutado, horas_ejecutadas, delta_rendimiento, delta_asistencia):
@@ -26,35 +28,21 @@ def calcular_iea(gasto_ejecutado, horas_ejecutadas, delta_rendimiento, delta_asi
 
 
 def calcular_correlacion_pearson(x, y):
-    """Calcula el coeficiente de correlación de Pearson entre dos arrays.
-
-    Args:
-        x: Array de valores (ej. horas de asistencia a taller).
-        y: Array de valores (ej. mejora en notas).
-
-    Returns:
-        tuple: (coeficiente_r, valor_p)
-    """
+    """Calcula el coeficiente de correlación de Pearson entre dos arrays."""
     if len(x) < 2 or len(y) < 2 or len(x) != len(y):
         return None, None
     try:
-        r, p = pearsonr(x, y)
-        return round(r, 3), round(p, 4)
+        # Usamos numpy para evitar la dependencia pesada de scipy en esta etapa
+        r = np.corrcoef(x, y)[0, 1]
+        if np.isnan(r):
+            return None, None
+        return round(float(r), 3), 0.0 # Retornamos 0.0 en p-value por simplicidad
     except Exception:
         return None, None
 
 
 def determinar_semaforo(proyeccion_cumplimiento, umbral_rojo=0.85, umbral_amarillo=0.95):
-    """Determina el estado del semáforo según proyección de cumplimiento.
-
-    Args:
-        proyeccion_cumplimiento: Valor entre 0.0 y 1.0+
-        umbral_rojo: Límite inferior (default 0.85)
-        umbral_amarillo: Límite medio (default 0.95)
-
-    Returns:
-        str: "Rojo", "Amarillo" o "Verde"
-    """
+    """Determina el estado del semáforo según proyección de cumplimiento."""
     if proyeccion_cumplimiento < umbral_rojo:
         return "Rojo"
     elif proyeccion_cumplimiento < umbral_amarillo:
@@ -63,15 +51,7 @@ def determinar_semaforo(proyeccion_cumplimiento, umbral_rojo=0.85, umbral_amaril
 
 
 def proyectar_cumplimiento(valores_historicos, meta):
-    """Proyecta el cumplimiento a fin de año usando regresión lineal simple.
-
-    Args:
-        valores_historicos: Lista de valores mensuales acumulados.
-        meta: Valor objetivo a alcanzar.
-
-    Returns:
-        float: Proyección de cumplimiento (0.0 - 1.0+)
-    """
+    """Proyecta el cumplimiento a fin de año usando regresión lineal simple."""
     if not valores_historicos or meta <= 0:
         return 0.0
 
@@ -90,3 +70,73 @@ def proyectar_cumplimiento(valores_historicos, meta):
     cumplimiento = proyeccion / meta
 
     return round(min(2.0, max(0.0, cumplimiento)), 3)
+
+
+def procesar_indicadores_accion(accion_id, periodo):
+    """NUEVO: Orquestador que une la base de datos con el motor algorítmico.
+    
+    Busca los datos de la acción, calcula los indicadores y los guarda en la BD.
+    """
+    accion = AccionPME.query.get(accion_id)
+    if not accion:
+        return None
+
+    # 1. Obtener estudiantes participantes y sus horas
+    participaciones = ParticipacionAccion.query.filter_by(accion_id=accion_id).all()
+    if not participaciones:
+        return None
+
+    estudiante_ids = [p.estudiante_id for p in participaciones]
+    horas_totales = sum(p.horas_asistencia for p in participaciones)
+    gasto_total = accion.presupuesto_ejecutado
+
+    # 2. Obtener registros de App Ponderado del período para esos estudiantes
+    registros = RegistroAppPonderado.query.filter(
+        RegistroAppPonderado.estudiante_id.in_(estudiante_ids),
+        RegistroAppPonderado.periodo == periodo
+    ).all()
+
+    if not registros:
+        return None
+
+    # 3. Preparar arrays para cálculos
+    promedio_notas_actual = np.mean([r.promedio_notas for r in registros])
+    promedio_asist_actual = np.mean([r.porcentaje_asistencia for r in registros])
+    
+    # Suposición MVP: Comparamos el promedio actual vs la línea base guardada en la BD
+    delta_rendimiento = promedio_notas_actual - (accion.linea_base_valor if accion.indicador_tipo == "Promedio Notas" else 0)
+    delta_asistencia = promedio_asist_actual - (accion.linea_base_valor if accion.indicador_tipo == "Asistencia" else 0)
+
+    # Arrays para Pearson (X = Horas de participación, Y = Notas)
+    x_horas = []
+    y_notas = []
+    for p in participaciones:
+        registro_estudiante = next((r for r in registros if r.estudiante_id == p.estudiante_id), None)
+        if registro_estudiante:
+            x_horas.append(p.horas_asistencia)
+            y_notas.append(registro_estudiante.promedio_notas)
+
+    # 4. Ejecutar matemáticas
+    iea = calcular_iea(gasto_total, horas_totales, delta_rendimiento, delta_asistencia)
+    r_pearson, _ = calcular_correlacion_pearson(x_horas, y_notas)
+    
+    # Proyección: Usamos los promedios históricos como valores_historicos (simplificado para MVP)
+    valores_historicos = [r.promedio_notas for r in registros]
+    proyeccion = proyectar_cumplimiento(valores_historicos, accion.meta_valor)
+    semaforo = determinar_semaforo(proyeccion)
+
+    # 5. Guardar en la tabla IndicadorAccion (Upsert básico)
+    indicador = IndicadorAccion.query.filter_by(accion_id=accion_id, mes=periodo).first()
+    if not indicador:
+        indicador = IndicadorAccion(accion_id=accion_id, mes=periodo)
+    
+    indicador.iea = iea
+    indicador.correlacion_pearson = r_pearson
+    indicador.proyeccion_cumplimiento = proyeccion
+    indicador.estado_semaforo = semaforo
+    indicador.gasto_mes = gasto_total
+
+    db.session.add(indicador)
+    db.session.commit()
+
+    return indicador

@@ -149,19 +149,40 @@ def crear_acciones(objetivos):
         else:
             ejecutado = 0.0
 
+        # Lógica para los nuevos campos del motor algorítmico
+        if "asistencia" in meta.lower():
+            ind_tipo = "Asistencia"
+            linea_base = random.uniform(80.0, 88.0)
+            meta_val = random.uniform(92.0, 98.0)
+            unidad_medida = "Porcentaje (%)"
+        else:
+            ind_tipo = "Promedio Notas"
+            linea_base = random.uniform(4.0, 5.0)
+            meta_val = random.uniform(5.5, 6.2)
+            unidad_medida = "Promedio Calificaciones (1.0-7.0)"
+
+        # Generar Código Interno y Fuente de Financiamiento
+        codigo_interno = f"ACC-{ANIO_GESTION}-{idx + 1:03d}"
+        fuente = random.choice(["SEP", "PIE", "Subvención General / Fondos Propios", "Otros"])
+
         acc = AccionPME(
             objetivo_id=objetivo.id,
             nombre=nombre,
             descripcion=fake.paragraph(nb_sentences=3),
             presupuesto_asignado=presupuesto,
             presupuesto_ejecutado=round(ejecutado, 0),
+            fuente_financiamiento=fuente,
+            codigo_interno=codigo_interno,
             estado=estado,
             responsable=responsable,
             fecha_inicio=inicio,
             fecha_fin=fin,
             meta_cualitativa=fake.sentence(nb_words=8),
             meta_cuantitativa=meta,
-            indicador_medible=meta.split("+")[-1] if "+" in meta else meta,
+            indicador_tipo=ind_tipo,
+            unidad_medida=unidad_medida,
+            linea_base_valor=round(linea_base, 2),
+            meta_valor=round(meta_val, 2),
             curso_objetivo=curso,
         )
         db.session.add(acc)
@@ -300,22 +321,20 @@ def crear_indicadores(acciones):
                 notas_delta_list.append(nota_final - nota_inicial)
 
         r_pearson, _ = calcular_correlacion_pearson(horas_list, notas_delta_list)
-        gastos_mensuales = []
 
         for i, mes in enumerate(meses):
             gasto = (accion.presupuesto_ejecutado / len(meses)) * random.uniform(0.8, 1.2)
-            gastos_mensuales.append(gasto)
 
             delta_rend = random.uniform(0.1, 0.8) if r_pearson and r_pearson > 0.3 else random.uniform(0.0, 0.3)
             delta_asist = random.uniform(1, 5)
             iea_val = calcular_iea(gasto, 10, delta_rend, delta_asist)
 
-            acumulado = sum(gastos_mensuales)
-            proy = proyectar_cumplimiento(
-                [acumulado / accion.presupuesto_asignado],
-                1.0
-            ) if accion.presupuesto_asignado > 0 else 0.0
-
+            # Simulamos un progreso hacia la meta a lo largo de los meses
+            # Generamos valores entre 0.60 (60% de cumplimiento) y 1.10 (110% de cumplimiento)
+            proyeccion_simulada = random.uniform(0.65, 1.15)
+            
+            # Proyectamos utilizando la funcion real del motor
+            proy = proyectar_cumplimiento([proyeccion_simulada], 1.0)
             semaforo = determinar_semaforo(proy)
 
             ind = IndicadorAccion(

@@ -1,6 +1,5 @@
 """Application Factory para EduGest PME."""
 from flask import Flask
-from app.models.user import User  # noqa: F401
 import os
 
 
@@ -28,8 +27,17 @@ def create_app(config_name="default"):
 
     # Crear tablas si no existen
     with app.app_context():
+        # CAMBIO CLAVE: Importar todos los modelos aquí para que SQLAlchemy los reconozca
+        from app.models.user import User
+        from app.models.pme import Establecimiento, DimensionPME, ObjetivoPME, AccionPME, Curso
+        from app.models.metrics import Estudiante, RegistroAppPonderado, MetricaSIGE, ParticipacionAccion, IndicadorAccion
+        
         db.create_all()
 
+    import json
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        return json.loads(value)
     return app
 
 

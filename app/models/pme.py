@@ -90,6 +90,8 @@ class AccionPME(db.Model):
     # Presupuesto
     presupuesto_asignado = db.Column(db.Float, default=0.0, nullable=False)
     presupuesto_ejecutado = db.Column(db.Float, default=0.0, nullable=False)
+    fuente_financiamiento = db.Column(db.String(50), nullable=True) # NUEVO
+    codigo_interno = db.Column(db.String(50), unique=True, nullable=True) # NUEVO
 
     # Estados: Planificada, En Ejecución, Finalizada, Cancelada
     estado = db.Column(db.String(30), default="Planificada", nullable=False)
@@ -99,10 +101,16 @@ class AccionPME(db.Model):
     fecha_inicio = db.Column(db.Date, nullable=True)
     fecha_fin = db.Column(db.Date, nullable=True)
 
-    # Metas
+    # Metas (Texto para humanos)
     meta_cualitativa = db.Column(db.Text, nullable=True)
     meta_cuantitativa = db.Column(db.String(100), nullable=True)
-    indicador_medible = db.Column(db.String(100), nullable=True)
+    
+    # NUEVOS CAMPOS PARA EL MOTOR ALGORÍTMICO
+    indicador_tipo = db.Column(db.String(50), nullable=True) # Ej: "Asistencia", "Promedio Notas"
+    unidad_medida = db.Column(db.String(50), nullable=True) # NUEVO
+    linea_base_valor = db.Column(db.Float, nullable=True) # Ej: 88.5
+    meta_valor = db.Column(db.Float, nullable=True) # Ej: 95.0
+
     curso_objetivo = db.Column(db.String(50), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

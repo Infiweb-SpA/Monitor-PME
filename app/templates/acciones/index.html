@@ -4,161 +4,58 @@
 
 {% block content %}
 <div class="p-8">
-    <!-- Breadcrumb -->
-    <div class="mb-6">
-        <a href="/acciones/" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2">
-            <i class="fas fa-arrow-left"></i> Volver a Acciones PME
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Acciones del PME 2026</h1>
+            <p class="text-gray-500 mt-1">Gestión y seguimiento de intervenciones del Plan de Mejoramiento.</p>
+        </div>
+        <a href="{{ url_for('ingesta.index') }}" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
+            <i class="fas fa-plus"></i> Nueva Acción
         </a>
     </div>
 
-    <!-- Header Card -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
-        <div class="flex flex-col lg:flex-row">
-            <!-- Image -->
-            <div class="lg:w-1/3 h-64 lg:h-auto bg-gradient-to-br from-indigo-600 to-purple-700 relative">
-                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80" 
-                     alt="Matemáticas" class="w-full h-full object-cover opacity-40">
-                <div class="absolute bottom-4 left-4">
-                    <span class="bg-white/90 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">ID: ACC-123</span>
-                </div>
-            </div>
-            <!-- Info -->
-            <div class="lg:w-2/3 p-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-4">Taller de Refuerzo Matemático<br>8vo Básico</h1>
-                <span class="inline-flex items-center gap-2 bg-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                    <i class="fas fa-check-circle"></i> En Ejecución
-                </span>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presupuesto Asignado</p>
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-money-check-alt text-indigo-600"></i>
-                            <span class="text-xl font-bold text-gray-900">$2.500.000</span>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Responsable</p>
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <span class="text-gray-900 font-medium">Prof. Marta Díaz</span>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fecha Inicio - Fin</p>
-                        <span class="text-gray-900 font-medium">Mar 2024 - Nov 2024</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Analytics Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Analítica de Impacto -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-            <div class="flex items-center gap-2 mb-6">
-                <i class="fas fa-chart-line text-indigo-600"></i>
-                <h3 class="text-lg font-semibold text-gray-900">Analítica de Impacto</h3>
-            </div>
-
-            <div class="flex flex-col items-center mb-6">
-                <div class="relative w-32 h-32">
-                    <svg class="w-32 h-32 transform -rotate-90">
-                        <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none"/>
-                        <circle cx="64" cy="64" r="56" stroke="#3b82f6" stroke-width="8" fill="none"
-                                stroke-dasharray="351.86" stroke-dashoffset="63.33" stroke-linecap="round"/>
-                    </svg>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span class="text-3xl font-bold text-gray-900">0.82</span>
-                        <span class="text-xs text-gray-500">Valor r</span>
-                    </div>
-                </div>
-            </div>
-
-            <p class="text-center text-sm text-gray-600 leading-relaxed mb-4">
-                Existe una correlación <span class="text-cyan-600 font-semibold">fuerte</span>: a mayor asistencia al taller, mejores resultados en evaluaciones.
-            </p>
-
-            <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-                <span class="text-xs text-gray-500">Métrica: Correlación de Pearson</span>
-                <i class="far fa-question-circle text-gray-400"></i>
-            </div>
-        </div>
-
-        <!-- Comparativa Rendimiento -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-chart-bar text-indigo-600"></i>
-                    <h3 class="text-lg font-semibold text-gray-900">Comparativa Rendimiento</h3>
-                </div>
-                <div class="flex items-center gap-4 text-xs">
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 bg-indigo-600 rounded-sm"></span> Grupo Beneficiado
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 bg-gray-300 rounded-sm"></span> Grupo Control
-                    </span>
-                </div>
-            </div>
-
-            <div class="h-64 flex items-end justify-around gap-4 pb-6 border-b border-gray-200">
-                <div class="flex flex-col items-center gap-2 flex-1">
-                    <div class="flex items-end gap-3 w-full justify-center" style="height: 140px;">
-                        <div class="w-10 bg-gray-300 rounded-t" style="height: 70%;"></div>
-                        <div class="w-10 bg-indigo-600 rounded-t" style="height: 80%;"></div>
-                    </div>
-                    <span class="text-xs text-gray-600 font-medium">Diagnóstico</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 flex-1">
-                    <div class="flex items-end gap-3 w-full justify-center" style="height: 180px;">
-                        <div class="w-10 bg-gray-300 rounded-t" style="height: 65%;"></div>
-                        <div class="w-10 bg-indigo-600 rounded-t" style="height: 85%;"></div>
-                    </div>
-                    <span class="text-xs text-gray-600 font-medium">Semestre 1</span>
-                </div>
-                <div class="flex flex-col items-center gap-2 flex-1">
-                    <div class="flex items-end gap-3 w-full justify-center" style="height: 200px;">
-                        <div class="w-10 bg-gray-300 rounded-t" style="height: 60%;"></div>
-                        <div class="w-10 bg-indigo-600 rounded-t" style="height: 95%;"></div>
-                    </div>
-                    <span class="text-xs text-gray-600 font-medium">Semestre 2</span>
-                </div>
-            </div>
-            <div class="flex justify-between text-xs text-gray-400 mt-2">
-                <span>4.0</span>
-                <span>5.5</span>
-                <span>7.0</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Indicadores Afectados -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-        <div class="flex items-center gap-2 mb-6">
-            <i class="fas fa-bullseye text-indigo-600"></i>
-            <h3 class="text-lg font-semibold text-gray-900">Indicadores Afectados</h3>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="p-4 border border-gray-200 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">Promedio Matemáticas</p>
-                <p class="text-lg font-bold text-gray-900">5.8 <span class="text-xs text-green-600 font-normal">↑ +0.8</span></p>
-            </div>
-            <div class="p-4 border border-gray-200 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">% Asistencia</p>
-                <p class="text-lg font-bold text-gray-900">94.2% <span class="text-xs text-green-600 font-normal">↑ +3.2%</span></p>
-            </div>
-            <div class="p-4 border border-gray-200 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">Participación</p>
-                <p class="text-lg font-bold text-gray-900">87% <span class="text-xs text-gray-400 font-normal">meta: 90%</span></p>
-            </div>
-            <div class="p-4 border border-gray-200 rounded-lg">
-                <p class="text-xs text-gray-500 mb-1">Satisfacción</p>
-                <p class="text-lg font-bold text-gray-900">4.5/5 <span class="text-xs text-green-600 font-normal">↑ +0.3</span></p>
-            </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 text-left text-gray-500 bg-gray-50">
+                        <th class="p-4 font-medium">Código</th>
+                        <th class="p-4 font-medium">Nombre de la Acción</th>
+                        <th class="p-4 font-medium">Responsable</th>
+                        <th class="p-4 font-medium">Estado</th>
+                        <th class="p-4 font-medium">Presupuesto</th>
+                        <th class="p-4 font-medium text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for acc in acciones %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td class="p-4 font-mono text-xs text-gray-500">{{ acc.codigo_interno or 'N/A' }}</td>
+                        <td class="p-4 font-medium text-gray-900">{{ acc.nombre[:40] }}{% if acc.nombre|length > 40 %}...{% endif %}</td>
+                        <td class="p-4 text-gray-600">{{ acc.responsable or 'No asignado' }}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 text-xs rounded-full font-medium
+                                {% if acc.estado == 'En Ejecución' %}bg-green-100 text-green-700
+                                {% elif acc.estado == 'Planificada' %}bg-blue-100 text-blue-700
+                                {% elif acc.estado == 'Finalizada' %}bg-gray-100 text-gray-700
+                                {% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ acc.estado }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-gray-900">${{ "{:,.0f}".format(acc.presupuesto_asignado) }}</td>
+                        <td class="p-4 text-right">
+                            <a href="{{ url_for('acciones.detalle', accion_id=acc.id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                Ver Detalle <i class="fas fa-arrow-right text-xs ml-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-gray-400">No hay acciones PME registradas aún.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

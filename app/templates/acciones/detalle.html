@@ -1,0 +1,208 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Detalle Acción - EduGest{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <!-- Breadcrumb -->
+    <div class="mb-6">
+        <a href="{{ url_for('acciones.index') }}" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Volver a Acciones PME
+        </a>
+    </div>
+
+    <!-- Header Card Dinámico -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
+        <div class="flex flex-col lg:flex-row">
+            <div class="lg:w-1/3 h-64 lg:h-auto bg-gradient-to-br from-indigo-600 to-purple-700 relative">
+                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80" 
+                     alt="Acción" class="w-full h-full object-cover opacity-40">
+                <div class="absolute bottom-4 left-4">
+                    <span class="bg-white/90 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">ID: {{ accion.codigo_interno or 'N/A' }}</span>
+                </div>
+            </div>
+            <div class="lg:w-2/3 p-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ accion.nombre }}<br><span class="text-lg text-gray-500 font-normal">{{ accion.curso_objetivo }}</span></h1>
+                
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6
+                    {% if accion.estado == 'En Ejecución' %}bg-cyan-100 text-cyan-700
+                    {% elif accion.estado == 'Planificada' %}bg-blue-100 text-blue-700
+                    {% else %}bg-gray-100 text-gray-700{% endif %}">
+                    <i class="fas fa-check-circle"></i> {{ accion.estado }}
+                </span>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presupuesto Asignado</p>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-money-check-alt text-indigo-600"></i>
+                            <span class="text-xl font-bold text-gray-900">${{ "{:,.0f}".format(accion.presupuesto_asignado) }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Responsable</p>
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span class="text-gray-900 font-medium">{{ accion.responsable or 'No asignado' }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fecha Inicio - Fin</p>
+                        <span class="text-gray-900 font-medium">
+                            {{ accion.fecha_inicio.strftime('%m/%Y') if accion.fecha_inicio else 'N/A' }} - 
+                            {{ accion.fecha_fin.strftime('%m/%Y') if accion.fecha_fin else 'N/A' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Analítica de Impacto (Pearson) -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+            <div class="flex items-center gap-2 mb-6">
+                <i class="fas fa-chart-line text-indigo-600"></i>
+                <h3 class="text-lg font-semibold text-gray-900">Analítica de Impacto</h3>
+            </div>
+
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative w-32 h-32">
+                    <svg class="w-32 h-32 transform -rotate-90">
+                        <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                        <!-- Círculo dinámico basado en Pearson -->
+                        <circle cx="64" cy="64" r="56" stroke="#3b82f6" stroke-width="8" fill="none"
+                                stroke-dasharray="351.86" 
+                                stroke-dashoffset="{{ 351.86 - (351.86 * (indicador.correlacion_pearson or 0)) }}" 
+                                stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-3xl font-bold text-gray-900">{{ indicador.correlacion_pearson if indicador and indicador.correlacion_pearson is not none else 'N/A' }}</span>
+                        <span class="text-xs text-gray-500">Valor r</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-center text-sm text-gray-600 leading-relaxed mb-4">
+                {% if indicador and indicador.correlacion_pearson %}
+                    {% if indicador.correlacion_pearson > 0.7 %}
+                        Existe una correlación <span class="text-cyan-600 font-semibold">fuerte</span>: a mayor asistencia al taller, mejores resultados.
+                    {% elif indicador.correlacion_pearson > 0.4 %}
+                        Existe una correlación <span class="text-yellow-600 font-semibold">moderada</span> entre la asistencia y los resultados.
+                    {% else %}
+                        Existe una correlación <span class="text-red-600 font-semibold">débil o nula</span> entre la asistencia y los resultados.
+                    {% endif %}
+                {% else %}
+                    Aún no hay datos suficientes para calcular la correlación.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Comparativa Rendimiento (Chart.js) -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-chart-bar text-indigo-600"></i>
+                    <h3 class="text-lg font-semibold text-gray-900">Proyección de Cumplimiento</h3>
+                </div>
+                <div class="flex items-center gap-4 text-xs">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 bg-indigo-600 rounded-sm"></span> Meta
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 bg-gray-300 rounded-sm"></span> Proyección Actual
+                    </span>
+                </div>
+            </div>
+
+            <div class="h-64 pb-6">
+                <canvas id="comparativaChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores Afectados -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <div class="flex items-center gap-2 mb-6">
+            <i class="fas fa-bullseye text-indigo-600"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Indicadores Afectados</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">Línea Base</p>
+                <p class="text-lg font-bold text-gray-900">{{ accion.linea_base_valor or 'N/A' }}</p>
+            </div>
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">Meta Valor</p>
+                <p class="text-lg font-bold text-gray-900">{{ accion.meta_valor or 'N/A' }}</p>
+            </div>
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">IEA (Eficiencia)</p>
+                <p class="text-lg font-bold text-gray-900">{{ indicador.iea if indicador and indicador.iea else 'N/A' }}</p>
+            </div>
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">Semáforo</p>
+                <p class="text-lg font-bold 
+                    {% if not indicador %}text-gray-900
+                    {% elif indicador.estado_semaforo == 'Verde' %}text-green-600
+                    {% elif indicador.estado_semaforo == 'Amarillo' %}text-yellow-600
+                    {% else %}text-red-600{% endif %}">
+                    {{ indicador.estado_semaforo if indicador else 'Sin Datos' }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('comparativaChart').getContext('2d');
+        
+        // Obtenemos los valores desde Flask a JS
+        const metaValor = {{ accion.meta_valor or 0 }};
+        // Si hay proyección de cumplimiento (0.0 a 1.0+), lo multiplicamos por la meta para ver el valor proyectado
+        const proyPorcentaje = {{ indicador.proyeccion_cumplimiento if indicador and indicador.proyeccion_cumplimiento else 0 }};
+        const proyValor = metaValor * proyPorcentaje;
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Objetivo Final'],
+                datasets: [{
+                    label: 'Meta Valor',
+                    data: [metaValor],
+                    backgroundColor: '#6366f1',
+                    borderColor: '#4f46e5',
+                    borderWidth: 1
+                }, {
+                    label: 'Proyección Actual',
+                    data: [proyValor],
+                    backgroundColor: '#e5e7eb',
+                    borderColor: '#d1d5db',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: metaValor * 1.2
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
