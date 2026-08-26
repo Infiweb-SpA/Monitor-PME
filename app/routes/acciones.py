@@ -77,6 +77,7 @@ def nueva_accion():
             nombre=nombre,
             descripcion=request.form.get("descripcion", ""),
             presupuesto_asignado=float(request.form.get("presupuesto_asignado", 0.0)),
+            presupuesto_ejecutado=float(request.form.get("presupuesto_ejecutado", 0.0)), # AGREGAR ESTA LÍNEA
             fuente_financiamiento=request.form.get("fuente_financiamiento"),
             codigo_interno=codigo,
             estado=request.form.get("estado", "Planificada"),

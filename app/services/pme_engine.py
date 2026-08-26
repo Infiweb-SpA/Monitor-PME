@@ -73,10 +73,7 @@ def proyectar_cumplimiento(valores_historicos, meta):
 
 
 def procesar_indicadores_accion(accion_id, periodo):
-    """NUEVO: Orquestador que une la base de datos con el motor algorítmico.
-    
-    Busca los datos de la acción, calcula los indicadores y los guarda en la BD.
-    """
+    """Orquestador que une la base de datos con el motor algorítmico."""
     accion = AccionPME.query.get(accion_id)
     if not accion:
         return None
@@ -90,42 +87,54 @@ def procesar_indicadores_accion(accion_id, periodo):
     horas_totales = sum(p.horas_asistencia for p in participaciones)
     gasto_total = accion.presupuesto_ejecutado
 
-    # 2. Obtener registros de App Ponderado del período para esos estudiantes
-    registros = RegistroAppPonderado.query.filter(
+    # 2. Obtener registros de App Ponderado del período actual para esos estudiantes
+    registros_actual = RegistroAppPonderado.query.filter(
         RegistroAppPonderado.estudiante_id.in_(estudiante_ids),
         RegistroAppPonderado.periodo == periodo
     ).all()
 
-    if not registros:
+    if not registros_actual:
         return None
 
     # 3. Preparar arrays para cálculos
-    promedio_notas_actual = np.mean([r.promedio_notas for r in registros])
-    promedio_asist_actual = np.mean([r.porcentaje_asistencia for r in registros])
+    promedio_notas_actual = np.mean([r.promedio_notas for r in registros_actual])
+    promedio_asist_actual = np.mean([r.porcentaje_asistencia for r in registros_actual])
     
-    # Suposición MVP: Comparamos el promedio actual vs la línea base guardada en la BD
     delta_rendimiento = promedio_notas_actual - (accion.linea_base_valor if accion.indicador_tipo == "Promedio Notas" else 0)
     delta_asistencia = promedio_asist_actual - (accion.linea_base_valor if accion.indicador_tipo == "Asistencia" else 0)
 
-    # Arrays para Pearson (X = Horas de participación, Y = Notas)
+    # Arrays para Pearson: X = Horas, Y = Mejora en la nota (Delta)
     x_horas = []
-    y_notas = []
+    y_delta_notas = []
+    
     for p in participaciones:
-        registro_estudiante = next((r for r in registros if r.estudiante_id == p.estudiante_id), None)
-        if registro_estudiante:
+        reg_actual = next((r for r in registros_actual if r.estudiante_id == p.estudiante_id), None)
+        if reg_actual:
+            # Buscar la nota más antigua del alumno para calcular la mejora real
+            reg_inicial = RegistroAppPonderado.query.filter(
+                RegistroAppPonderado.estudiante_id == p.estudiante_id
+            ).order_by(RegistroAppPonderado.periodo.asc()).first()
+            
+            if reg_inicial and reg_inicial.id != reg_actual.id:
+                # Si hay histórico, el delta es la diferencia entre la nota actual y la inicial
+                delta_nota = reg_actual.promedio_notas - reg_inicial.promedio_notas
+            else:
+                # Si solo hay un periodo, comparamos contra la línea base de la acción
+                delta_nota = reg_actual.promedio_notas - (accion.linea_base_valor or 0)
+            
             x_horas.append(p.horas_asistencia)
-            y_notas.append(registro_estudiante.promedio_notas)
+            y_delta_notas.append(delta_nota)
 
     # 4. Ejecutar matemáticas
     iea = calcular_iea(gasto_total, horas_totales, delta_rendimiento, delta_asistencia)
-    r_pearson, _ = calcular_correlacion_pearson(x_horas, y_notas)
+    r_pearson, _ = calcular_correlacion_pearson(x_horas, y_delta_notas) # ¡Ahora correlaciona horas vs mejora!
     
-    # Proyección: Usamos los promedios históricos como valores_historicos (simplificado para MVP)
-    valores_historicos = [r.promedio_notas for r in registros]
+    # Proyección basada en los promedios históricos
+    valores_historicos = [r.promedio_notas for r in registros_actual]
     proyeccion = proyectar_cumplimiento(valores_historicos, accion.meta_valor)
     semaforo = determinar_semaforo(proyeccion)
 
-    # 5. Guardar en la tabla IndicadorAccion (Upsert básico)
+    # 5. Guardar en la tabla IndicadorAccion
     indicador = IndicadorAccion.query.filter_by(accion_id=accion_id, mes=periodo).first()
     if not indicador:
         indicador = IndicadorAccion(accion_id=accion_id, mes=periodo)

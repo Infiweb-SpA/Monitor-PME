@@ -141,7 +141,7 @@
             </div>
             <div class="p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">IEA (Eficiencia)</p>
-                <p class="text-lg font-bold text-gray-900">{{ indicador.iea if indicador and indicador.iea else 'N/A' }}</p>
+                <p class="text-lg font-bold text-gray-900">{{ indicador.iea if indicador and indicador.iea is not none else 'N/A' }}</p>
             </div>
             <div class="p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">Semáforo</p>
