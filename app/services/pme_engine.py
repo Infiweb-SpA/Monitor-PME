@@ -7,8 +7,8 @@ Incluye:
 """
 import numpy as np
 from app.extensions import db
-from app.models.pme import AccionPME
 from app.models.metrics import RegistroAppPonderado, ParticipacionAccion, IndicadorAccion, Estudiante
+from app.models.pme import AccionPME, ConfiguracionSistema
 
 
 # ============================================================
@@ -16,16 +16,8 @@ from app.models.metrics import RegistroAppPonderado, ParticipacionAccion, Indica
 # ============================================================
 
 def calcular_iea(gasto_ejecutado, horas_ejecutadas, delta_rendimiento, delta_asistencia,
-                 presupuesto_asignado=None):
-    """Calcula el Índice de Eficiencia de Acción (IEA).
-
-    Escalas NORMALIZADAS para que sean comparables:
-    - Notas (1.0-7.0): una mejora de +1.0 punto es el tope razonable.
-    - Asistencia (0-100): una mejora de +10% es el tope razonable → se divide por 10.
-
-    Penalización por sobregiro: si gasto > presupuesto, el IEA se reduce
-    proporcionalmente (presupuesto / gasto).
-    """
+                 presupuesto_asignado=None, peso_rendimiento=0.6, peso_asistencia=0.4):
+    """Calcula el Índice de Eficiencia de Acción (IEA) con pesos configurables."""
     if gasto_ejecutado <= 0 or horas_ejecutadas <= 0:
         return 0.0
 
@@ -33,7 +25,12 @@ def calcular_iea(gasto_ejecutado, horas_ejecutadas, delta_rendimiento, delta_asi
     delta_rend_norm = max(-2.0, min(2.0, delta_rendimiento))
     delta_asist_norm = max(-10.0, min(10.0, delta_asistencia)) / 10.0
 
-    impacto = (delta_rend_norm * 0.6) + (delta_asist_norm * 0.4)
+    # Los pesos se normalizan (si suman 1.0 no cambian nada)
+    total_pesos = peso_rendimiento + peso_asistencia
+    if total_pesos <= 0:
+        total_pesos = 1.0
+
+    impacto = (delta_rend_norm * peso_rendimiento + delta_asist_norm * peso_asistencia) / total_pesos
     recurso = (gasto_ejecutado / 1_000_000) + (horas_ejecutadas / 10)
 
     if recurso <= 0:
@@ -44,8 +41,7 @@ def calcular_iea(gasto_ejecutado, horas_ejecutadas, delta_rendimiento, delta_asi
     # PENALIZACIÓN POR SOBREGIRO PRESUPUESTARIO
     if presupuesto_asignado and presupuesto_asignado > 0:
         if gasto_ejecutado > presupuesto_asignado:
-            factor = presupuesto_asignado / gasto_ejecutado
-            iea *= factor
+            iea *= presupuesto_asignado / gasto_ejecutado
 
     return round(min(5.0, max(0.0, iea)), 2)
 
@@ -192,9 +188,17 @@ def procesar_indicadores_accion(accion_id, periodo):
         else:
             delta_asistencia = 0.0
 
-    # --- IEA con penalización por sobregiro ---
+    # --- Configuración del sistema (umbrales y pesos personalizables) ---
+    config = ConfiguracionSistema.query.first()
+    peso_r = config.peso_rendimiento if config else 0.6
+    peso_a = config.peso_asistencia if config else 0.4
+    um_rojo = config.umbral_rojo if config else 0.85
+    um_amar = config.umbral_amarillo if config else 0.95
+
+    # --- IEA con penalización por sobregiro y pesos configurables ---
     iea = calcular_iea(gasto_total, horas_totales, delta_rendimiento,
-                       delta_asistencia, accion.presupuesto_asignado)
+                       delta_asistencia, accion.presupuesto_asignado,
+                       peso_rendimiento=peso_r, peso_asistencia=peso_a)
 
     # --- Pearson: horas vs mejora de nota ---
     r_pearson, _ = calcular_correlacion_pearson(x_horas, y_deltas)
@@ -215,7 +219,9 @@ def procesar_indicadores_accion(accion_id, periodo):
                 meses_x.append(len(serie))
 
     proyeccion = proyectar_cumplimiento(serie, accion.meta_valor, x_indices=meses_x)
-    semaforo = determinar_semaforo(proyeccion)
+
+    # --- Semáforo con umbrales configurables desde el módulo de Configuración ---
+    semaforo = determinar_semaforo(proyeccion, um_rojo, um_amar)
 
     # --- Upsert en IndicadorAccion ---
     indicador = IndicadorAccion.query.filter_by(accion_id=accion_id, mes=periodo).first()

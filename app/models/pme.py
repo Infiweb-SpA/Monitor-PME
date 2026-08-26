@@ -153,3 +153,32 @@ class Curso(db.Model):
 
     def __repr__(self):
         return f"<Curso {self.nombre}>"
+
+class ConfiguracionSistema(db.Model):
+    """Parámetros configurables del motor algorítmico por establecimiento."""
+
+    __tablename__ = "configuracion_sistema"
+
+    id = db.Column(db.Integer, primary_key=True)
+    establecimiento_id = db.Column(
+        db.Integer, db.ForeignKey("establecimientos.id"), nullable=False
+    )
+
+    # Año lectivo activo para los reportes
+    anio_activo = db.Column(db.Integer, default=2026, nullable=False)
+
+    # Umbrales del Semáforo (0.0 - 1.0)
+    umbral_rojo = db.Column(db.Float, default=0.85, nullable=False)
+    umbral_amarillo = db.Column(db.Float, default=0.95, nullable=False)
+
+    # Pesos del IEA (se normalizan al sumar)
+    peso_rendimiento = db.Column(db.Float, default=0.6, nullable=False)
+    peso_asistencia = db.Column(db.Float, default=0.4, nullable=False)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relaciones
+    establecimiento = db.relationship("Establecimiento")
+
+    def __repr__(self):
+        return f"<ConfiguracionSistema Est:{self.establecimiento_id} Año:{self.anio_activo}>"

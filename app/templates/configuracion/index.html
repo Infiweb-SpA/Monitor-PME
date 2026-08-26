@@ -4,31 +4,6 @@
 
 {% block content %}
 <div class="p-8">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-8">
-        <div class="relative flex-1 max-w-md">
-            <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
-            <input type="text" placeholder="Buscar en configuración..." 
-                   class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-        </div>
-        <div class="flex items-center gap-3 ml-4">
-            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                <i class="far fa-calendar text-gray-500"></i>
-                <span>Academic Year 2024</span>
-            </div>
-            <button class="w-9 h-9 bg-white rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 relative">
-                <i class="far fa-bell"></i>
-                <span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <button class="w-9 h-9 bg-white rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-                <i class="far fa-calendar"></i>
-            </button>
-            <button class="w-9 h-9 bg-white rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-                <i class="far fa-user"></i>
-            </button>
-        </div>
-    </div>
-
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración del Sistema y Parámetros del Algoritmo</h1>
         <p class="text-gray-500">Gestione las preferencias institucionales, umbrales de alerta y permisos de usuario.</p>
@@ -36,74 +11,333 @@
 
     <!-- Tabs -->
     <div class="border-b border-gray-200 mb-8">
-        <nav class="flex gap-8">
-            <a href="#" class="pb-3 border-b-2 border-indigo-600 text-indigo-700 font-medium text-sm">Ajustes del Colegio</a>
-            <a href="#" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Parámetros del Algoritmo</a>
-            <a href="#" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Gestión de Usuarios y Roles</a>
-            <a href="#" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Integraciones</a>
+        <nav class="flex gap-8" id="tabs-nav">
+            <button onclick="switchTab('tab1', this)" class="tab-btn active pb-3 border-b-2 border-indigo-600 text-indigo-700 font-medium text-sm">Ajustes del Colegio</button>
+            <button onclick="switchTab('tab2', this)" class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Parámetros del Algoritmo</button>
+            <button onclick="switchTab('tab3', this)" class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Gestión de Usuarios y Roles</button>
+            <button onclick="switchTab('tab4', this)" class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">Integraciones</button>
         </nav>
     </div>
 
-    <!-- Información Institucional -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-5xl">
+    <!-- ==================== TAB 1: COLEGIO ==================== -->
+    <div id="tab1" class="tab-content bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-5xl">
         <h2 class="text-xl font-bold text-gray-900 mb-6">Información Institucional</h2>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Logo Upload -->
+            <!-- Logo -->
             <div class="lg:col-span-1">
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50 hover:border-indigo-400 transition cursor-pointer h-64 flex flex-col items-center justify-center">
-                    <div class="w-20 h-20 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4">
-                        <img src="https://via.placeholder.com/60x60/4F46E5/FFFFFF?text=EG" alt="Logo" class="w-16 h-16 object-contain">
+                <form action="{{ url_for('config.subir_logo') }}" method="POST" enctype="multipart/form-data" id="form-logo">
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50 hover:border-indigo-400 transition h-64 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4 overflow-hidden">
+                            {% if establecimiento.logo_url %}
+                            <img src="{{ establecimiento.logo_url }}" alt="Logo" class="w-16 h-16 object-contain">
+                            {% else %}
+                            <img src="https://via.placeholder.com/60x60/4F46E5/FFFFFF?text=EG" alt="Logo" class="w-16 h-16 object-contain">
+                            {% endif %}
+                        </div>
+                        <label for="logo-input" class="text-indigo-700 font-medium text-sm mb-1 flex items-center gap-2 cursor-pointer">
+                            <i class="fas fa-upload"></i> Cambiar Logo
+                        </label>
+                        <p class="text-xs text-gray-500 mb-3">PNG, JPG hasta 2MB</p>
+                        <input type="file" id="logo-input" name="logo" accept=".png,.jpg,.jpeg,.gif" class="hidden" onchange="document.getElementById('form-logo').submit()">
                     </div>
-                    <p class="text-indigo-700 font-medium text-sm mb-1 flex items-center gap-2">
-                        <i class="fas fa-upload"></i> Cambiar Logo
-                    </p>
-                    <p class="text-xs text-gray-500">PNG, JPG hasta 2MB</p>
-                </div>
+                </form>
             </div>
 
             <!-- Formulario -->
-            <div class="lg:col-span-2 space-y-5">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="lg:col-span-2">
+                <form action="{{ url_for('config.guardar_establecimiento') }}" method="POST" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre del Establecimiento</label>
+                            <input type="text" name="nombre" value="{{ establecimiento.nombre }}" required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Rol Base de Datos (RBD)</label>
+                            <input type="text" value="{{ establecimiento.rbd }}" readonly
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed">
+                            <p class="text-xs text-gray-500 mt-1">El RBD es inmutable una vez configurado.</p>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre del Establecimiento</label>
-                        <input type="text" value="Liceo Bicentenario de Excelencia" 
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Dirección Principal</label>
+                        <input type="text" name="direccion" value="{{ establecimiento.direccion or '' }}"
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Rol Base de Datos (RDB)</label>
-                        <input type="text" value="12345-6" 
-                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" readonly>
-                        <p class="text-xs text-gray-500 mt-1">El RDB es inmutable una vez configurado.</p>
-                    </div>
-                </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Dirección Principal</label>
-                    <input type="text" value="Av. Libertador Bernardo O'Higgins 1234, Santiago" 
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Teléfono de Contacto</label>
-                        <input type="text" value="+56 2 2123 4567" 
-                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Teléfono de Contacto</label>
+                            <input type="text" name="telefono" value="{{ establecimiento.telefono or '' }}"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo Electrónico Institucional</label>
+                            <input type="email" name="email_institucional" value="{{ establecimiento.email_institucional or '' }}"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo Electrónico Institucional</label>
-                        <input type="email" value="contacto@liceobicentenario.edu.cl" 
-                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                    </div>
-                </div>
 
-                <div class="flex justify-end pt-4">
-                    <button type="button" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
-                        Guardar Cambios
-                    </button>
-                </div>
+                    <div class="flex justify-end pt-4">
+                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+
+    <!-- ==================== TAB 2: ALGORITMO ==================== -->
+    <div id="tab2" class="tab-content hidden bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-5xl">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Parámetros del Motor Algorítmico</h2>
+        <p class="text-sm text-gray-500 mb-6">Calibre la sensibilidad de las alertas del PME. Los cambios aplican a los próximos cálculos del motor (registros F-2/F-4 posteriores).</p>
+
+        <form action="{{ url_for('config.guardar_parametros') }}" method="POST" class="space-y-8">
+            <!-- Umbrales del Semáforo -->
+            <div class="border border-gray-200 rounded-xl p-6">
+                <h3 class="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                    <i class="fas fa-traffic-light text-indigo-600"></i> Umbrales del Semáforo de Cumplimiento
+                </h3>
+                <p class="text-xs text-gray-500 mb-5">Defina a partir de qué proyección de cumplimiento una acción se marca en alerta.</p>
+
+                <!-- Vista previa en vivo -->
+                <div class="mb-6">
+                    <div class="flex h-4 rounded-full overflow-hidden border border-gray-200">
+                        <div id="seg-rojo" class="bg-red-500" style="width: {{ (config.umbral_rojo * 100)|round(1) }}%"></div>
+                        <div id="seg-amarillo" class="bg-yellow-500" style="width: {{ ((config.umbral_amarillo - config.umbral_rojo) * 100)|round(1) }}%"></div>
+                        <div id="seg-verde" class="bg-green-500 flex-1"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span id="lbl-rojo">Rojo &lt; {{ (config.umbral_rojo * 100)|round(0) }}%</span>
+                        <span id="lbl-amarillo">{{ (config.umbral_rojo * 100)|round(0) }}% - {{ (config.umbral_amarillo * 100)|round(0) }}%</span>
+                        <span id="lbl-verde">Verde ≥ {{ (config.umbral_amarillo * 100)|round(0) }}%</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Umbral Rojo (%)</label>
+                        <input type="number" name="umbral_rojo" id="input-rojo" min="1" max="99" step="1"
+                               value="{{ (config.umbral_rojo * 100)|round(0) }}"
+                               oninput="actualizarPreview()"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Debajo de este % → alerta crítica</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Umbral Amarillo (%)</label>
+                        <input type="number" name="umbral_amarillo" id="input-amarillo" min="2" max="100" step="1"
+                               value="{{ (config.umbral_amarillo * 100)|round(0) }}"
+                               oninput="actualizarPreview()"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Entre rojo y este % → en riesgo</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Año Lectivo Activo</label>
+                        <input type="number" name="anio_activo" min="2000" max="2100"
+                               value="{{ config.anio_activo }}"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Usado en los reportes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pesos del IEA -->
+            <div class="border border-gray-200 rounded-xl p-6">
+                <h3 class="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                    <i class="fas fa-balance-scale text-indigo-600"></i> Pesos del Índice de Eficiencia (IEA)
+                </h3>
+                <p class="text-xs text-gray-500 mb-5">¿Qué pondera más al medir el impacto de una acción: el rendimiento académico o la asistencia?</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Peso Rendimiento (%)</label>
+                        <input type="number" name="peso_rendimiento" min="0" max="100" step="5"
+                               value="{{ (config.peso_rendimiento * 100)|round(0) }}"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Variación de notas (ej. 60)</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Peso Asistencia (%)</label>
+                        <input type="number" name="peso_asistencia" min="0" max="100" step="5"
+                               value="{{ (config.peso_asistencia * 100)|round(0) }}"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Variación de asistencia (ej. 40)</p>
+                    </div>
+                </div>
+                <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
+                    <i class="fas fa-info-circle"></i> Recomendado mantener la suma en 100%. El sistema normaliza automáticamente si difiere.
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+                    Guardar Parámetros
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== TAB 3: USUARIOS ==================== -->
+    <div id="tab3" class="tab-content hidden bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-5xl">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">Gestión de Usuarios y Roles</h2>
+
+        <!-- Tabla de usuarios existentes -->
+        <div class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 text-left text-gray-500 bg-gray-50">
+                        <th class="p-3 font-medium">Nombre</th>
+                        <th class="p-3 font-medium">Correo</th>
+                        <th class="p-3 font-medium">Rol</th>
+                        <th class="p-3 font-medium">Estado</th>
+                        <th class="p-3 font-medium text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td class="p-3 font-medium text-gray-900">{{ u.nombre }}{% if u.id == current_user.id %} <span class="text-xs text-indigo-500">(usted)</span>{% endif %}</td>
+                        <td class="p-3 text-gray-600">{{ u.email }}</td>
+                        <td class="p-3 text-gray-600">{{ u.rol }}</td>
+                        <td class="p-3">
+                            {% if u.activo %}
+                            <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-700">Activo</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full font-medium bg-gray-100 text-gray-500">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 text-right">
+                            {% if u.id != current_user.id %}
+                            <form action="{{ url_for('config.toggle_usuario', usuario_id=u.id) }}" method="POST" class="inline">
+                                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border
+                                    {% if u.activo %}border-red-200 text-red-600 hover:bg-red-50{% else %}border-green-200 text-green-600 hover:bg-green-50{% endif %}">
+                                    {% if u.activo %}Desactivar{% else %}Activar{% endif %}
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-xs text-gray-400">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="p-6 text-center text-gray-400">No hay usuarios registrados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Crear nuevo usuario -->
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Crear Nuevo Usuario</h3>
+            <form action="{{ url_for('config.crear_usuario') }}" method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Ana Ríos"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo</label>
+                    <input type="email" name="email" required placeholder="ana@liceo.cl"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Rol</label>
+                    <select name="rol" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        {% for rol in roles %}
+                        <option value="{{ rol }}">{{ rol }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+                    <input type="password" name="password" required minlength="6" placeholder="Mín. 6 caracteres"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition whitespace-nowrap">
+                    <i class="fas fa-user-plus"></i> Crear
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 4: INTEGRACIONES ==================== -->
+    <div id="tab4" class="tab-content hidden bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-5xl">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Integraciones Externas</h2>
+        <p class="text-sm text-gray-500 mb-6">Conectores automáticos planificados para la Fase 2 del producto (requieren credenciales oficiales).</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="border border-gray-200 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900">SIGE (Mineduc)</h4>
+                        <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Fase 2 — Pendiente</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">Extracción automática de matrícula, asistencia validada y calificaciones consolidadas.</p>
+                <button disabled class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-400 cursor-not-allowed bg-gray-50">
+                    Requiere credenciales oficiales
+                </button>
+            </div>
+
+            <div class="border border-gray-200 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900">App Ponderado</h4>
+                        <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Fase 2 — Pendiente</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">Sincronización de notas parciales y asistencia diaria del libro de clases digital.</p>
+                <button disabled class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-400 cursor-not-allowed bg-gray-50">
+                    Requiere credenciales oficiales
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-amber-50 border border-amber-100 rounded-lg p-4 text-sm text-amber-700">
+            <i class="fas fa-lightbulb"></i> Mientras tanto, use la <strong>ingesta manual (F-2/F-3)</strong> o la <strong>carga masiva por Excel</strong> del módulo de Ingesta.
+        </div>
+    </div>
 </div>
+
+<script>
+    // Lógica de pestañas
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('border-indigo-600', 'text-indigo-700', 'active');
+            b.classList.add('border-transparent', 'text-gray-500');
+        });
+        document.getElementById(tabId).classList.remove('hidden');
+        btn.classList.add('border-indigo-600', 'text-indigo-700', 'active');
+        btn.classList.remove('border-transparent', 'text-gray-500');
+    }
+
+    // Vista previa en vivo de la barra de semáforo
+    function actualizarPreview() {
+        const rojo = parseFloat(document.getElementById('input-rojo').value) || 0;
+        const amarillo = parseFloat(document.getElementById('input-amarillo').value) || 100;
+
+        const segRojo = document.getElementById('seg-rojo');
+        const segAmar = document.getElementById('seg-amarillo');
+
+        const wRojo = Math.max(0, Math.min(rojo, 99));
+        const wAmar = Math.max(0, Math.min(amarillo, 100) - wRojo);
+
+        segRojo.style.width = wRojo + '%';
+        segAmar.style.width = wAmar + '%';
+
+        document.getElementById('lbl-rojo').innerText = `Rojo < ${Math.round(wRojo)}%`;
+        document.getElementById('lbl-amarillo').innerText = `${Math.round(wRojo)}% - ${Math.round(Math.min(amarillo, 100))}%`;
+        document.getElementById('lbl-verde').innerText = `Verde ≥ ${Math.round(Math.min(amarillo, 100))}%`;
+    }
+</script>
 {% endblock %}
