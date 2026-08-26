@@ -8,6 +8,8 @@ import pandas as pd
 from app.extensions import db
 from app.models.pme import AccionPME, ObjetivoPME, DimensionPME
 from app.models.metrics import IndicadorAccion
+from app.services.pme_engine import obtener_impacto_individual
+
 
 acciones_bp = Blueprint("acciones", __name__, template_folder="../templates/acciones")
 
@@ -45,13 +47,19 @@ def detalle(accion_id):
     """Vista de detalle y analítica de impacto de una acción específica."""
     accion = AccionPME.query.get_or_404(accion_id)
     
-    # Buscamos el indicador más reciente calculado por el motor
     indicador = accion.indicadores.order_by(IndicadorAccion.mes.desc()).first()
-    
-    # Buscamos el histórico de indicadores para el gráfico de tendencia
     historico = accion.indicadores.order_by(IndicadorAccion.mes.asc()).all()
     
-    return render_template("acciones/detalle.html", accion=accion, indicador=indicador, historico=historico)
+    # NUEVO: Impacto individual por alumno
+    alumnos = obtener_impacto_individual(accion_id)
+    
+    return render_template(
+        "acciones/detalle.html",
+        accion=accion,
+        indicador=indicador,
+        historico=historico,
+        alumnos=alumnos  # NUEVO
+    )
 
 @acciones_bp.route("/nueva", methods=["GET", "POST"])
 @login_required
