@@ -1,0 +1,55 @@
+﻿Acción,Código,Periodo,IEA,Correlación Pearson,Proyección Cumplimiento,Semáforo,Gasto del Mes ($)
+Taller de Refuerzo Matemático,ACC-2026-001,2026-03,5.0,-0.01,0.9551457862208825,Verde,179517.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-04,5.0,-0.01,0.6778324876055086,Rojo,150380.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-05,5.0,-0.01,1.0,Verde,150610.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-06,5.0,-0.01,0.7529313101815068,Rojo,172986.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-07,5.0,-0.01,0.6881940901653754,Rojo,201592.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-08,5.0,-0.01,0.8590437390853117,Amarillo,165482.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-09,5.0,-0.01,0.9357094005666615,Amarillo,157448.0
+Taller de Refuerzo Matemático,ACC-2026-001,2026-10,0.12,0.121,0.807,Rojo,1421447.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-03,5.0,-0.562,0.7462075786689076,Rojo,76302.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-04,5.0,-0.562,0.7409102501423143,Rojo,95079.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-05,5.0,-0.562,0.9974784808590742,Verde,69392.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-06,5.0,-0.562,0.9548468905873482,Verde,78177.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-07,5.0,-0.562,0.7957437285907846,Rojo,96295.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-08,5.0,-0.562,0.8385510963691776,Rojo,73211.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-09,5.0,-0.562,0.8240289818095655,Rojo,85629.0
+Lectura Comprensiva Diaria,ACC-2026-002,2026-10,5.0,-0.562,0.9358390261639469,Amarillo,96450.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-03,5.0,0.18,1.0,Verde,143722.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-04,5.0,0.18,0.9365063478360465,Amarillo,123565.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-05,5.0,0.18,1.0,Verde,116923.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-06,5.0,0.18,0.9829122090963933,Verde,153807.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-07,5.0,0.18,0.7452661373373762,Rojo,123039.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-08,5.0,0.18,0.9540193319437253,Verde,112327.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-09,5.0,0.18,0.884736098130642,Amarillo,135666.0
+Programa de Liderazgo Estudiantil,ACC-2026-004,2026-10,5.0,0.18,0.8228471371201413,Rojo,114016.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-03,5.0,0.275,0.7062885949798167,Rojo,58722.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-04,5.0,0.275,1.0,Verde,47295.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-05,5.0,0.275,0.7805655703294617,Rojo,49318.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-06,5.0,0.275,1.0,Verde,53470.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-07,5.0,0.275,0.736552452704933,Rojo,45551.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-08,5.0,0.275,1.0,Verde,47478.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-09,5.0,0.275,0.8029459596598643,Rojo,45545.0
+Mediación de Conflictos entre Pares,ACC-2026-006,2026-10,5.0,0.275,0.6746301124903965,Rojo,43013.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-03,2.8,0.136,1.0,Verde,1130838.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-04,5.0,0.136,1.0,Verde,1192906.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-05,2.89,0.136,0.8250729728623372,Rojo,1322292.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-06,5.0,0.136,0.9661381534309238,Verde,1306123.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-07,5.0,0.136,0.786977215169324,Rojo,962770.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-08,5.0,0.136,0.9381273411420648,Amarillo,1181461.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-09,5.0,0.136,0.7044772705509491,Rojo,1047633.0
+Adquisición Tablets Laboratorio Ciencias,ACC-2026-008,2026-10,5.0,0.136,1.0,Verde,1238664.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-03,5.0,0.357,0.6641414247222779,Rojo,176962.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-04,5.0,0.357,1.0,Verde,201241.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-05,5.0,0.357,0.9765487405739677,Verde,141668.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-06,5.0,0.357,0.8980670340214576,Amarillo,170105.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-07,5.0,0.357,0.7724399069007749,Rojo,195084.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-08,5.0,0.357,0.6780545770276645,Rojo,188098.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-09,5.0,0.357,1.0,Verde,144533.0
+Reforzamiento Habilidades Socioemocionales,ACC-2026-010,2026-10,5.0,0.357,1.0,Verde,145323.0
+Taller recreativo de Paint War,ACC-2026-013,2026-08,0.0,-0.421,0.054,Rojo,0.0
+Taller de computación y programación,ACC-2026-015,2026-08,0.0,,0.901,Amarillo,0.0
+Taller Prueba Matemática,ACC-2026-016,2026-08,0.0,-0.558,0.876,Amarillo,0.0
+Taller Comprensión lectora,ACC-2026-017,2026-08,0.29,0.886,1.104,Verde,850000.0
+Taller Comprensión lectora,ACC-2026-017,2026-10,0.41,0.991,1.148,Verde,850000.0
+Convivencia escolar,ACC-2026-018,2026-10,0.19,-0.28,1.1,Verde,900000.0

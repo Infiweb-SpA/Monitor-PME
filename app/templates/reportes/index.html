@@ -9,10 +9,6 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Módulo de Reportes</h1>
         </div>
-        <div class="relative">
-            <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
-            <input type="text" placeholder="Buscar reportes..." class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64">
-        </div>
     </div>
 
     <div class="mb-8">
@@ -23,6 +19,7 @@
     <!-- Descarga Rápida -->
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Descarga Rápida</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <!-- PDF Ejecutivo -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-bl-full"></div>
             <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white mb-4">
@@ -30,11 +27,13 @@
             </div>
             <h4 class="text-lg font-bold text-gray-900 mb-2">Reporte Ejecutivo Sostenedor</h4>
             <p class="text-sm text-gray-500 mb-6 leading-relaxed">Resumen directivo del avance de metas y presupuesto ejecutado para presentación al sostenedor.</p>
-            <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
-                <i class="fas fa-download"></i> Descargar PDF
+            <!-- RUTA REAL: abre la vista imprimible en pestaña nueva -->
+            <a href="{{ url_for('reportes.reporte_ejecutivo') }}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
+                <i class="fas fa-download"></i> Generar PDF (vista imprimible)
             </a>
         </div>
 
+        <!-- Excel Matriz -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-20 h-20 bg-indigo-50 rounded-bl-full"></div>
             <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white mb-4">
@@ -42,20 +41,21 @@
             </div>
             <h4 class="text-lg font-bold text-gray-900 mb-2">Matriz de Rendición</h4>
             <p class="text-sm text-gray-500 mb-6 leading-relaxed">Sabana de datos detallada de gastos y acciones vinculadas para control financiero.</p>
-            <!-- ENLACE REAL A LA RUTA DE EXCEL -->
             <a href="{{ url_for('reportes.exportar_excel') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
                 <i class="fas fa-download"></i> Descargar Excel
             </a>
         </div>
 
+        <!-- ZIP Auditoría -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-20 h-20 bg-gray-100 rounded-bl-full"></div>
             <div class="w-12 h-12 bg-gray-600 rounded-lg flex items-center justify-center text-white mb-4">
                 <i class="fas fa-file-archive text-xl"></i>
             </div>
             <h4 class="text-lg font-bold text-gray-900 mb-2">Informe Auditoría MINEDUC</h4>
-            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Formato oficial requerido por la Superintendencia de Educación con todos los verificadores.</p>
-            <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Paquete con toda la trazabilidad: matriz, indicadores históricos, participaciones y datos SIGE.</p>
+            <!-- RUTA REAL: descarga el ZIP -->
+            <a href="{{ url_for('reportes.auditoria_zip') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
                 <i class="fas fa-download"></i> Descargar ZIP
             </a>
         </div>
@@ -70,86 +70,95 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
             <div class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Periodo de Ejecución</label>
-                    <div class="flex gap-3">
-                        <div class="relative flex-1">
-                            <i class="far fa-calendar absolute left-3 top-3 text-gray-400 text-sm"></i>
-                            <input type="text" value="01/03/2026" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                <form id="form-personalizado">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Periodo de Ejecución</label>
+                            <div class="flex gap-3">
+                                <input type="date" id="filtro-desde" value="2026-03-01" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <input type="date" id="filtro-hasta" value="2026-12-31" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
                         </div>
-                        <div class="relative flex-1">
-                            <i class="far fa-calendar absolute left-3 top-3 text-gray-400 text-sm"></i>
-                            <input type="text" value="31/12/2026" class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Dimensiones PME (Seleccione al menos una)</label>
+                            <div class="space-y-2">
+                                <!-- Checkboxes dinámicos desde la BD -->
+                                {% for dim in dimensiones %}
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" name="dim" value="{{ dim.id }}" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                    <span class="text-sm text-gray-700">{{ dim.nombre }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Dimensiones PME (Seleccione al menos una)</label>
-                    <div class="space-y-2">
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                            <span class="text-sm text-gray-700">Gestión Pedagógica</span>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                            <span class="text-sm text-gray-700">Liderazgo Escolar</span>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                            <span class="text-sm text-gray-700">Convivencia Escolar</span>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                            <span class="text-sm text-gray-700">Gestión de Recursos</span>
-                        </label>
-                    </div>
-                </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Niveles / Cursos Asociados</label>
+                            <div class="relative">
+                                <select id="filtro-curso" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option value="">Todos los niveles (Institucional)</option>
+                                    {% for curso in cursos %}
+                                    <option value="{{ curso.nombre }}">{{ curso.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
+                            </div>
+                        </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Niveles / Cursos Asociados</label>
-                    <div class="relative">
-                        <select class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option>Todos los niveles (Institucional)</option>
-                        </select>
-                        <i class="fas fa-chevron-down absolute right-3 top-3 text-gray-400 text-xs pointer-events-none"></i>
-                    </div>
-                </div>
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm text-gray-700">Incluir Medios de Verificación (Anexos)</label>
+                            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Próximamente</span>
+                        </div>
 
-                <div class="flex items-center justify-between">
-                    <label class="text-sm text-gray-700">Incluir Medios de Verificación (Anexos)</label>
-                    <div class="relative inline-block w-11 h-6 bg-gray-200 rounded-full cursor-pointer">
-                        <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow"></span>
+                        <button type="submit" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-file-export"></i> Generar Excel Personalizado (filtrado)
+                        </button>
                     </div>
-                </div>
+                </form>
             </div>
 
+            <!-- Vista previa con datos REALES -->
             <div class="flex items-center justify-center">
                 <div class="w-full max-w-sm bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
                     <div class="bg-teal-700 text-white p-4 flex justify-between items-center">
                         <div>
-                            <p class="text-sm font-medium">Colegio San Juan de la Montaña</p>
-                            <p class="text-xs text-teal-200">RBD: 12345-6</p>
+                            <p class="text-sm font-medium">{{ establecimiento.nombre if establecimiento else 'Establecimiento' }}</p>
+                            <p class="text-xs text-teal-200">RBD: {{ establecimiento.rbd if establecimiento else 'N/A' }}</p>
                         </div>
                         <i class="fas fa-envelope text-teal-200"></i>
                     </div>
                     <div class="p-6 text-center">
                         <h4 class="text-lg font-bold text-gray-900 mb-1">Reporte de Avance PME 2026</h4>
-                        <p class="text-xs text-gray-500 mb-6">Periodo: Mar 2026 - Dic 2026</p>
-                        <div class="space-y-3 mb-6">
-                            <div class="h-3 bg-gray-100 rounded-full w-3/4 mx-auto"></div>
-                            <div class="h-3 bg-gray-100 rounded-full w-full mx-auto"></div>
-                            <div class="h-3 bg-gray-100 rounded-full w-5/6 mx-auto"></div>
+                        <p class="text-xs text-gray-500 mb-6">{{ total_acciones }} acciones registradas</p>
+
+                        <!-- Resumen semáforos real -->
+                        <div class="flex justify-center gap-2 mb-6">
+                            <span class="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span> {{ semaforos.Verde }}
+                            </span>
+                            <span class="flex items-center gap-1 text-xs bg-yellow-50 text-yellow-700 px-2 py-1 rounded-full">
+                                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span> {{ semaforos.Amarillo }}
+                            </span>
+                            <span class="flex items-center gap-1 text-xs bg-red-50 text-red-700 px-2 py-1 rounded-full">
+                                <span class="w-2 h-2 bg-red-500 rounded-full"></span> {{ semaforos.Rojo }}
+                            </span>
                         </div>
+
                         <div class="text-left">
-                            <p class="text-xs font-medium text-gray-700 mb-2">Avance Gestión Pedagógica</p>
+                            <p class="text-xs font-medium text-gray-700 mb-2">Ejecución Presupuestaria Global</p>
                             <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-600 rounded-full" style="width: 65%"></div>
+                                <div class="h-full bg-indigo-600 rounded-full" style="width: {{ [pje_ejecucion, 100]|min }}%"></div>
                             </div>
                             <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>Ejecutado: 65%</span>
-                                <span>Meta: 100%</span>
+                                <span>Ejecutado: ${{ "{:,.0f}".format(total_ejecutado) }}</span>
+                                <span>Asignado: ${{ "{:,.0f}".format(total_asignado) }}</span>
                             </div>
+                            {% if iea_promedio is not none %}
+                            <p class="text-xs text-gray-500 mt-3 text-center">
+                                IEA Promedio del PME: <span class="font-bold text-gray-700">{{ iea_promedio }} / 5.0</span>
+                            </p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -157,4 +166,23 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Genera el Excel personalizado enviando los filtros por query params
+    document.getElementById('form-personalizado').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const dims = [...document.querySelectorAll('input[name="dim"]:checked')].map(c => c.value);
+        const curso = document.getElementById('filtro-curso').value;
+        const desde = document.getElementById('filtro-desde').value;
+        const hasta = document.getElementById('filtro-hasta').value;
+
+        const params = new URLSearchParams();
+        if (dims.length) params.set('dimensiones', dims.join(','));
+        if (curso) params.set('curso', curso);
+        if (desde) params.set('desde', desde);
+        if (hasta) params.set('hasta', hasta);
+
+        window.location.href = "{{ url_for('reportes.exportar_excel') }}?" + params.toString();
+    });
+</script>
 {% endblock %}
