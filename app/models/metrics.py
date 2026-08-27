@@ -30,6 +30,9 @@ class Estudiante(db.Model):
     participaciones = db.relationship(
         "ParticipacionAccion", back_populates="estudiante", lazy="dynamic"
     )
+    mediciones_indicadores = db.relationship(
+        "MedicionIndicador", back_populates="estudiante", lazy="dynamic"
+    )
 
     @property
     def nombre_completo(self):
@@ -120,8 +123,82 @@ class ParticipacionAccion(db.Model):
         return f"<Participacion E:{self.estudiante_id} A:{self.accion_id}>"
 
 
+class DefinicionIndicador(db.Model):
+    """Definición de un indicador de evaluación dentro de una acción PME.
+
+    Permite que una acción tenga múltiples indicadores con dirección,
+    unidad, línea base y meta propias.
+    """
+
+    __tablename__ = "definiciones_indicador"
+
+    id = db.Column(db.Integer, primary_key=True)
+    accion_id = db.Column(
+        db.Integer, db.ForeignKey("acciones_pme.id"), nullable=False
+    )
+
+    nombre = db.Column(db.String(150), nullable=False)
+    descripcion = db.Column(db.Text, nullable=True)
+
+    # Tipo: NOTA, ASISTENCIA, HABILIDAD, COMPETENCIA, INDICADOR_PEDAGOGICO,
+    #       RUBRICA, OTRO_CUANTITATIVO
+    tipo = db.Column(db.String(50), nullable=False, default="OTRO_CUANTITATIVO")
+
+    unidad_medida = db.Column(db.String(80), nullable=True)
+
+    # Dirección: MAYOR_ES_MEJOR o MENOR_ES_MEJOR
+    direccion = db.Column(db.String(20), nullable=False, default="MAYOR_ES_MEJOR")
+
+    linea_base = db.Column(db.Float, nullable=True)
+    meta = db.Column(db.Float, nullable=True)
+
+    # Peso para cálculo de IPA (se normalizan si no suman 1.0)
+    peso = db.Column(db.Float, default=1.0, nullable=False)
+
+    metodo_evaluacion = db.Column(db.String(150), nullable=True)
+    frecuencia_medicion = db.Column(db.String(50), nullable=True)
+
+    activo = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    accion = db.relationship("AccionPME", back_populates="definiciones_indicadores")
+    mediciones = db.relationship(
+        "MedicionIndicador", back_populates="indicador_def", lazy="dynamic"
+    )
+
+    def __repr__(self):
+        return f"<DefinicionIndicador {self.nombre} (A:{self.accion_id})>"
+
+
+class MedicionIndicador(db.Model):
+    """Medición de un indicador para un estudiante en un periodo específico."""
+
+    __tablename__ = "mediciones_indicador"
+
+    id = db.Column(db.Integer, primary_key=True)
+    indicador_def_id = db.Column(
+        db.Integer, db.ForeignKey("definiciones_indicador.id"), nullable=False
+    )
+    estudiante_id = db.Column(
+        db.Integer, db.ForeignKey("estudiantes.id"), nullable=False
+    )
+
+    periodo = db.Column(db.String(10), nullable=False, index=True)
+    valor = db.Column(db.Float, nullable=False)
+    observacion = db.Column(db.Text, nullable=True)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    indicador_def = db.relationship("DefinicionIndicador", back_populates="mediciones")
+    estudiante = db.relationship("Estudiante", back_populates="mediciones_indicadores")
+
+    def __repr__(self):
+        return f"<MedicionIndicador E:{self.estudiante_id} I:{self.indicador_def_id} P:{self.periodo}>"
+
+
 class IndicadorAccion(db.Model):
-    """Indicadores calculados mensualmente por acción (IEA, Pearson, Semáforo)."""
+    """Indicadores calculados mensualmente por acción (IEA, Pearson, Semáforo, IPA)."""
 
     __tablename__ = "indicadores_accion"
 
@@ -147,6 +224,25 @@ class IndicadorAccion(db.Model):
 
     # Gasto del mes
     gasto_mes = db.Column(db.Float, default=0.0, nullable=False)
+
+    # --- NUEVOS CAMPOS (Avance 3: progreso e IPA) ---
+    # Índice de Progreso de la Acción (promedio ponderado de progreso de indicadores)
+    ipa = db.Column(db.Float, nullable=True)
+
+    # Progreso promedio del grupo hacia la meta (en %)
+    progreso_promedio = db.Column(db.Float, nullable=True)
+
+    # Delta promedio absoluto del grupo
+    delta_promedio = db.Column(db.Float, nullable=True)
+
+    # Porcentaje de estudiantes que mejoraron
+    porcentaje_mejora = db.Column(db.Float, nullable=True)
+
+    # Porcentaje de estudiantes que alcanzaron la meta
+    porcentaje_meta_alcanzada = db.Column(db.Float, nullable=True)
+
+    # Porcentaje de estudiantes en retroceso
+    porcentaje_retroceso = db.Column(db.Float, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -26,12 +26,8 @@
         </nav>
     </div>
 
-    <!-- Contenido de Pestañas -->
-    
-        <!-- F-1: Registro Acciones PME (Actualizado) -->
+    <!-- F-1: Registro Acciones PME -->
     <div id="tab1" class="tab-content bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-        
-        <!-- Sección de Gestión Masiva Excel -->
         <div class="bg-indigo-50 p-6 rounded-xl mb-8 border border-indigo-100">
             <h3 class="text-lg font-bold text-indigo-900 mb-4">Gestión Masiva de Acciones (Excel)</h3>
             <div class="flex flex-wrap gap-3 items-center">
@@ -50,7 +46,6 @@
             </div>
         </div>
 
-        <!-- Formulario F-1 Enriquecido -->
         <h2 class="text-xl font-bold text-gray-900 mb-6">Crear Nueva Acción PME</h2>
         <form action="{{ url_for('acciones.nueva_accion') }}" method="POST" class="space-y-5">
             <div class="grid grid-cols-3 gap-4">
@@ -68,13 +63,10 @@
                     </select>
                 </div>
             </div>
-
-            <!-- NUEVO: Campo Descripción -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Descripción de la Acción</label>
                 <input type="text" name="descripcion" placeholder="Breve resumen de la acción a ejecutar" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
             </div>
-
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Dimensión (Objetivo)</label>
@@ -101,7 +93,6 @@
                     <input type="text" name="responsable" placeholder="Ej: UTP Ana Ríos" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
             </div>
-
             <div class="grid grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Presupuesto ($)</label>
@@ -124,7 +115,6 @@
                     <input type="text" name="curso_objetivo" placeholder="Ej: 8° Básico" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
             </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Indicador a Medir</label>
@@ -142,7 +132,6 @@
                     </select>
                 </div>
             </div>
-
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Línea Base (Numérico)</label>
@@ -153,23 +142,39 @@
                     <input type="number" step="0.1" name="meta_valor" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
                 <div>
-                    <!-- NUEVO: Campo Meta Cuantitativa -->
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Meta Cuantitativa (Texto)</label>
                     <input type="text" name="meta_cuantitativa" placeholder="Ej: +5% asistencia" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
             </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Justificación de la Inversión (Meta Cualitativa)</label>
                 <textarea name="meta_cualitativa" rows="3" placeholder="¿Por qué es necesario este gasto para mejorar los resultados?" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm"></textarea>
             </div>
+
+            <!-- Indicadores de Evaluación (Etapa 12) -->
+            <div class="border-t border-gray-200 pt-6 mt-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Indicadores de Evaluación</h3>
+                        <p class="text-xs text-gray-500">Opcional: defina indicadores personalizados con dirección y metas propias.</p>
+                    </div>
+                    <button type="button" onclick="agregarIndicador()" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-1">
+                        <i class="fas fa-plus"></i> Agregar Indicador
+                    </button>
+                </div>
+                <div id="indicadores-container"></div>
+                <p id="sin-indicadores" class="text-sm text-gray-400 italic text-center py-4 border border-dashed border-gray-200 rounded-lg">
+                    Sin indicadores definidos. Se usarán los campos de arriba (Indicador a Medir, Línea Base, Meta Valor).
+                </p>
+            </div>
+
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
                 <i class="fas fa-save"></i> Crear Acción y Habilitar Motor
             </button>
         </form>
     </div>
 
-    <!-- F-2: App Ponderado -->
+    <!-- F-2: App Ponderado + Mediciones de Indicadores -->
     <div id="tab2" class="tab-content hidden bg-white rounded-xl border border-gray-200 shadow-sm p-8">
         <h2 class="text-xl font-bold text-gray-900 mb-6">Carga de Notas y Asistencia (App Ponderado)</h2>
         <form action="{{ url_for('ingesta.cargar_app_ponderado') }}" method="POST" class="space-y-5">
@@ -179,7 +184,6 @@
                     <select name="estudiante_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
                         <option value="" disabled selected>Seleccione un estudiante...</option>
                         {% for est in estudiantes %}
-                        <!-- Aquí agregamos est.curso.nombre dentro del texto de la opción -->
                         <option value="{{ est.id }}">{{ est.nombre_completo }} - {{ est.curso.nombre }}</option>
                         {% endfor %}
                     </select>
@@ -211,6 +215,44 @@
                 <i class="fas fa-save"></i> Registrar Intervención
             </button>
         </form>
+
+        <!-- NUEVO: Mediciones de Indicadores (Etapa 13) -->
+        <div class="border-t border-gray-200 pt-6 mt-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-1">Mediciones de Indicadores</h3>
+            <p class="text-xs text-gray-500 mb-4">Registre valores de indicadores personalizados para un estudiante. Requiere que la acción tenga indicadores definidos en F-1.</p>
+            <form action="{{ url_for('ingesta.cargar_medicion_indicador') }}" method="POST" class="space-y-4">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Acción PME</label>
+                        <select name="accion_id" id="med-accion-select" required onchange="cargarIndicadoresMedicion()" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="" disabled selected>Seleccione acción...</option>
+                            {% for acc in acciones %}
+                            <option value="{{ acc.id }}">{{ acc.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Periodo</label>
+                        <input type="text" name="periodo" required placeholder="Ej: 2026-08" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Estudiante</label>
+                        <select name="estudiante_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="" disabled selected>Seleccione estudiante...</option>
+                            {% for est in estudiantes %}
+                            <option value="{{ est.id }}">{{ est.nombre_completo }} - {{ est.curso.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div id="med-indicadores-container">
+                    <p class="text-sm text-gray-400 italic text-center py-6 border border-dashed border-gray-200 rounded-lg">Seleccione una acción para cargar sus indicadores.</p>
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 flex items-center gap-2">
+                    <i class="fas fa-chart-line"></i> Registrar Mediciones de Indicadores
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- F-3: SIGE -->
@@ -253,6 +295,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Acción PME / Taller</label>
                     <select name="accion_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="" disabled selected>⚠️ Seleccione una acción...</option>
                         {% for acc in acciones %}<option value="{{ acc.id }}">{{ acc.nombre }}</option>{% endfor %}
                     </select>
                 </div>
@@ -265,10 +308,12 @@
                     <input type="number" step="0.1" name="horas_asistencia" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
             </div>
-            
-            <!-- Selector de Checkboxes Desplegable -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Seleccionar Estudiantes Participantes</label>
+                <div class="flex gap-2 mb-2">
+                    <button type="button" onclick="seleccionarTodos()" class="px-3 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200">Seleccionar todos</button>
+                    <button type="button" onclick="limpiarSeleccion()" class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">Limpiar</button>
+                </div>
                 <div class="relative">
                     <button type="button" onclick="toggleDropdown()" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-left bg-white flex justify-between items-center">
                         <span id="selected-count">Haga clic para seleccionar alumnos...</span>
@@ -284,7 +329,6 @@
                     </div>
                 </div>
             </div>
-
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
                 <i class="fas fa-sync-alt"></i> Guardar Participación y Disparar Motor
             </button>
@@ -304,14 +348,115 @@
         event.currentTarget.classList.add('border-indigo-600', 'text-indigo-700', 'active');
     }
 
-    // Lógica del Dropdown de Estudiantes
+    // Dropdown de Estudiantes (F-4)
     function toggleDropdown() {
         document.getElementById('dropdown').classList.toggle('hidden');
     }
-
     function updateCount() {
-        const checkboxes = document.querySelectorAll('.student-checkbox:checked');
-        document.getElementById('selected-count').innerText = `${checkboxes.length} alumno(s) seleccionado(s)`;
+        var cbs = document.querySelectorAll('.student-checkbox:checked');
+        document.getElementById('selected-count').innerText = cbs.length + ' alumno(s) seleccionado(s)';
+    }
+    function seleccionarTodos() {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+        updateCount();
+    }
+    function limpiarSeleccion() {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+        updateCount();
+    }
+
+    // Indicadores de Evaluación (F-1 - Etapa 12)
+    var indCounter = 0;
+    function agregarIndicador() {
+        indCounter++;
+        var container = document.getElementById('indicadores-container');
+        var ph = document.getElementById('sin-indicadores');
+        if (ph) ph.style.display = 'none';
+        var div = document.createElement('div');
+        div.className = 'border border-gray-200 rounded-lg p-4 mb-3 bg-gray-50';
+        div.id = 'ind-' + indCounter;
+        div.innerHTML =
+            '<div class="flex items-center justify-between mb-3">' +
+                '<span class="text-sm font-semibold text-indigo-700">Indicador #' + indCounter + '</span>' +
+                '<button type="button" onclick="eliminarIndicador(' + indCounter + ')" class="text-red-500 hover:text-red-700 text-sm"><i class="fas fa-trash"></i> Eliminar</button>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-3">' +
+                '<div class="col-span-2"><label class="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>' +
+                '<input type="text" name="ind_nombre[]" required placeholder="Ej: Velocidad lectora" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>' +
+                '<select name="ind_tipo[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white">' +
+                    '<option value="OTRO_CUANTITATIVO">Otro Cuantitativo</option><option value="NOTA">Nota</option>' +
+                    '<option value="ASISTENCIA">Asistencia</option><option value="HABILIDAD">Habilidad</option>' +
+                    '<option value="COMPETENCIA">Competencia</option><option value="INDICADOR_PEDAGOGICO">Ind. Pedagógico</option>' +
+                    '<option value="RUBRICA">Rúbrica</option></select></div>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-3 mt-2">' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Unidad</label><input type="text" name="ind_unidad[]" placeholder="Ej: PPM, %" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Dirección</label><select name="ind_direccion[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white"><option value="MAYOR_ES_MEJOR">↑ Mayor es mejor</option><option value="MENOR_ES_MEJOR">↓ Menor es mejor</option></select></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Peso (%)</label><input type="number" step="0.1" name="ind_peso[]" value="100" min="0" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+            '</div>' +
+            '<div class="grid grid-cols-2 gap-3 mt-2">' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Línea Base</label><input type="number" step="0.1" name="ind_linea_base[]" placeholder="Ej: 60" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Meta</label><input type="number" step="0.1" name="ind_meta[]" placeholder="Ej: 120" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-3 mt-2">' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Descripción</label><input type="text" name="ind_descripcion[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Método Evaluación</label><input type="text" name="ind_metodo[]" placeholder="Ej: Test oral" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Frecuencia</label><input type="text" name="ind_frecuencia[]" placeholder="Ej: Mensual" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+            '</div>';
+        container.appendChild(div);
+    }
+    function eliminarIndicador(id) {
+        var el = document.getElementById('ind-' + id);
+        if (el) el.remove();
+        if (document.querySelectorAll('#indicadores-container > div').length === 0) {
+            var ph = document.getElementById('sin-indicadores');
+            if (ph) ph.style.display = 'block';
+        }
+    }
+
+    // NUEVO: Cargar indicadores de una acción vía AJAX (F-2 - Etapa 13)
+    function cargarIndicadoresMedicion() {
+        var select = document.getElementById('med-accion-select');
+        var accionId = select.value;
+        var container = document.getElementById('med-indicadores-container');
+
+        if (!accionId) {
+            container.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-6 border border-dashed border-gray-200 rounded-lg">Seleccione una acción para cargar sus indicadores.</p>';
+            return;
+        }
+
+        container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4"><i class="fas fa-spinner fa-spin"></i> Cargando indicadores...</p>';
+
+        fetch('/ingesta/indicadores_de_accion/' + accionId)
+            .then(function(r) { return r.json(); })
+            .then(function(indicadores) {
+                if (indicadores.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-amber-600 text-center py-4 border border-amber-200 rounded-lg bg-amber-50"><i class="fas fa-exclamation-triangle"></i> Esta acción no tiene indicadores definidos. Use F-1 para agregarlos, o use F-4 para el flujo legacy (notas/asistencia).</p>';
+                    return;
+                }
+                var html = '<div class="space-y-2">';
+                html += '<p class="text-xs text-gray-500 mb-2">Se encontraron <strong>' + indicadores.length + '</strong> indicador(es). Complete los valores medidos:</p>';
+                for (var i = 0; i < indicadores.length; i++) {
+                    var ind = indicadores[i];
+                    var dirLabel = ind.direccion === 'MENOR_ES_MEJOR' ? '↓ Menor es mejor' : '↑ Mayor es mejor';
+                    html += '<div class="grid grid-cols-12 gap-3 items-center bg-gray-50 p-3 rounded-lg border border-gray-200">';
+                    html += '<div class="col-span-4"><p class="text-sm font-medium text-gray-900">' + ind.nombre + '</p>';
+                    html += '<p class="text-xs text-gray-500">' + (ind.unidad_medida || ind.tipo) + ' · ' + dirLabel + '</p>';
+                    html += '<p class="text-xs text-gray-400">Base: ' + (ind.linea_base != null ? ind.linea_base : 'N/A') + ' → Meta: ' + (ind.meta != null ? ind.meta : 'N/A') + '</p></div>';
+                    html += '<input type="hidden" name="med_indicador_id[]" value="' + ind.id + '">';
+                    html += '<div class="col-span-4"><label class="block text-xs text-gray-500 mb-1">Valor medido</label>';
+                    html += '<input type="number" step="0.1" name="med_valor[]" placeholder="Valor" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>';
+                    html += '<div class="col-span-4"><label class="block text-xs text-gray-500 mb-1">Observación</label>';
+                    html += '<input type="text" name="med_observacion[]" placeholder="Opcional" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>';
+                    html += '</div>';
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            })
+            .catch(function() {
+                container.innerHTML = '<p class="text-sm text-red-500 text-center py-4"><i class="fas fa-times-circle"></i> Error al cargar indicadores. Intente nuevamente.</p>';
+            });
     }
 </script>
 {% endblock %}

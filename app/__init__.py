@@ -1,5 +1,6 @@
 """Application Factory para EduGest PME."""
 from flask import Flask
+from app.models import pme, metrics, user
 import os
 
 
@@ -30,8 +31,10 @@ def create_app(config_name="default"):
         # CAMBIO CLAVE: Importar todos los modelos aquí para que SQLAlchemy los reconozca
         from app.models.user import User
         from app.models.pme import Establecimiento, DimensionPME, ObjetivoPME, AccionPME, Curso
-        from app.models.metrics import Estudiante, RegistroAppPonderado, MetricaSIGE, ParticipacionAccion, IndicadorAccion
-        
+        from app.models.metrics import (Estudiante, RegistroAppPonderado, MetricaSIGE,
+                                        ParticipacionAccion, IndicadorAccion,
+                                        DefinicionIndicador, MedicionIndicador)  # <-- NUEVOS
+
         db.create_all()
 
     import json
