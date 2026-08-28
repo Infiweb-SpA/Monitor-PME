@@ -9,7 +9,8 @@ import pandas as pd
 from app.extensions import db
 from app.models.pme import AccionPME, ObjetivoPME, DimensionPME, Establecimiento, Curso
 from app.models.metrics import (
-    IndicadorAccion, ParticipacionAccion, MetricaSIGE, Estudiante
+    IndicadorAccion, ParticipacionAccion, MetricaSIGE, Estudiante,
+    DefinicionIndicador, MedicionIndicador
 )
 
 reportes_bp = Blueprint("reportes", __name__, template_folder="../templates/reportes")
@@ -45,6 +46,13 @@ def _df_acciones(acciones):
             "Correlación Pearson": indicador.correlacion_pearson if indicador else None,
             "Proyección Cumplimiento": indicador.proyeccion_cumplimiento if indicador else None,
             "Semáforo Alerta": indicador.estado_semaforo if indicador else "Sin Datos",
+            # Nuevos campos (modelo nuevo)
+            "IPA (%)": indicador.ipa if indicador else None,
+            "Progreso Promedio (%)": indicador.progreso_promedio if indicador else None,
+            "Delta Promedio": indicador.delta_promedio if indicador else None,
+            "% Estudiantes Mejora": indicador.porcentaje_mejora if indicador else None,
+            "% Meta Alcanzada": indicador.porcentaje_meta_alcanzada if indicador else None,
+            "% Retroceso": indicador.porcentaje_retroceso if indicador else None,
         })
     return pd.DataFrame(data)
 
@@ -56,13 +64,18 @@ def _estadisticas_globales(acciones):
     pje_ejecucion = (total_ejecutado / total_asignado * 100) if total_asignado > 0 else 0.0
 
     semaforos = {"Verde": 0, "Amarillo": 0, "Rojo": 0, "Sin Datos": 0}
-    ieas = []
+    ieas, ipas, progresos = [], [], []
+
     for acc in acciones:
         ind = acc.indicadores.order_by(IndicadorAccion.mes.desc()).first()
         estado = ind.estado_semaforo if ind else "Sin Datos"
         semaforos[estado] = semaforos.get(estado, 0) + 1
         if ind and ind.iea is not None:
             ieas.append(ind.iea)
+        if ind and ind.ipa is not None:
+            ipas.append(ind.ipa)
+        if ind and ind.progreso_promedio is not None:
+            progresos.append(ind.progreso_promedio)
 
     return {
         "total_asignado": total_asignado,
@@ -70,6 +83,8 @@ def _estadisticas_globales(acciones):
         "pje_ejecucion": round(pje_ejecucion, 1),
         "semaforos": semaforos,
         "iea_promedio": round(sum(ieas) / len(ieas), 2) if ieas else None,
+        "ipa_promedio": round(sum(ipas) / len(ipas), 1) if ipas else None,
+        "progreso_promedio": round(sum(progresos) / len(progresos), 1) if progresos else None,
     }
 
 
@@ -89,24 +104,19 @@ def index():
 
     return render_template(
         "reportes/index.html",
-        acciones=acciones,
-        dimensiones=dimensiones,
-        cursos=cursos,
-        establecimiento=establecimiento,
-        total_acciones=len(acciones),
-        **stats,
+        acciones=acciones, dimensiones=dimensiones, cursos=cursos,
+        establecimiento=establecimiento, total_acciones=len(acciones), **stats,
     )
 
 
 @reportes_bp.route("/ejecutivo")
 @login_required
 def reporte_ejecutivo():
-    """Vista HTML imprimible del Reporte Ejecutivo para el Sostenedor (Guardar como PDF)."""
+    """Vista HTML imprimible del Reporte Ejecutivo para el Sostenedor."""
     establecimiento = Establecimiento.query.first()
     acciones = AccionPME.query.all()
     stats = _estadisticas_globales(acciones)
 
-    # Filas detalladas por acción
     filas = []
     for acc in acciones:
         ind = acc.indicadores.order_by(IndicadorAccion.mes.desc()).first()
@@ -123,17 +133,16 @@ def reporte_ejecutivo():
             "pearson": ind.correlacion_pearson if ind else None,
             "proyeccion": round(ind.proyeccion_cumplimiento * 100, 1) if ind and ind.proyeccion_cumplimiento else None,
             "semaforo": ind.estado_semaforo if ind else "Sin Datos",
+            "ipa": ind.ipa if ind else None,
+            "progreso": ind.progreso_promedio if ind else None,
         })
 
     alertas = [f for f in filas if f["semaforo"] in ("Rojo", "Amarillo")]
 
     return render_template(
         "reportes/ejecutivo.html",
-        establecimiento=establecimiento,
-        fecha=datetime.now(),
-        filas=filas,
-        alertas=alertas,
-        **stats,
+        establecimiento=establecimiento, fecha=datetime.now(),
+        filas=filas, alertas=alertas, **stats,
     )
 
 
@@ -144,11 +153,10 @@ def reporte_ejecutivo():
 @reportes_bp.route("/exportar_excel")
 @login_required
 def exportar_excel():
-    """Matriz de Rendición en Excel. Acepta filtros del Reporte Personalizado por query params."""
-    # --- Filtros opcionales (Reporte Personalizado) ---
+    """Matriz de Rendición en Excel. Acepta filtros del Reporte Personalizado."""
     query = AccionPME.query
 
-    dim_ids = request.args.get("dimensiones")  # formato: "1,3"
+    dim_ids = request.args.get("dimensiones")
     if dim_ids:
         ids = [int(x) for x in dim_ids.split(",") if x.strip().isdigit()]
         if ids:
@@ -161,16 +169,14 @@ def exportar_excel():
     desde = request.args.get("desde")
     if desde:
         try:
-            fi = datetime.strptime(desde, "%Y-%m-%d").date()
-            query = query.filter(AccionPME.fecha_inicio >= fi)
+            query = query.filter(AccionPME.fecha_inicio >= datetime.strptime(desde, "%Y-%m-%d").date())
         except ValueError:
             pass
 
     hasta = request.args.get("hasta")
     if hasta:
         try:
-            ff = datetime.strptime(hasta, "%Y-%m-%d").date()
-            query = query.filter(AccionPME.fecha_fin <= ff)
+            query = query.filter(AccionPME.fecha_fin <= datetime.strptime(hasta, "%Y-%m-%d").date())
         except ValueError:
             pass
 
@@ -180,25 +186,20 @@ def exportar_excel():
         return redirect(url_for("reportes.index"))
 
     df = _df_acciones(acciones)
-
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Matriz Rendición")
     output.seek(0)
 
     nombre = f"Matriz_Rendicion_PME_{datetime.now().strftime('%Y%m%d')}.xlsx"
-    return send_file(
-        output,
-        download_name=nombre,
-        as_attachment=True,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+    return send_file(output, download_name=nombre, as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @reportes_bp.route("/auditoria")
 @login_required
 def auditoria_zip():
-    """Genera un ZIP con toda la trazabilidad del PME para auditoría (Superintendencia)."""
+    """ZIP con trazabilidad completa del PME para auditoría."""
     acciones = AccionPME.query.all()
     if not acciones:
         flash("No hay datos registrados para generar el paquete de auditoría.", "warning")
@@ -209,7 +210,7 @@ def auditoria_zip():
 
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
 
-        # 1. Matriz de Rendición (Excel)
+        # 1. Matriz de Rendición
         df_acc = _df_acciones(acciones)
         excel_buf = io.BytesIO()
         with pd.ExcelWriter(excel_buf, engine="openpyxl") as writer:
@@ -217,13 +218,19 @@ def auditoria_zip():
         excel_buf.seek(0)
         zf.writestr("01_matriz_rendicion_pme.xlsx", excel_buf.read())
 
-        # 2. Indicadores históricos por acción y mes (CSV)
+        # 2. Indicadores históricos (actualizado con nuevos campos)
         inds = IndicadorAccion.query.join(AccionPME).order_by(AccionPME.id, IndicadorAccion.mes).all()
         df_ind = pd.DataFrame([{
             "Acción": i.accion.nombre,
             "Código": i.accion.codigo_interno or "",
             "Periodo": i.mes,
             "IEA": i.iea,
+            "IPA (%)": i.ipa,
+            "Progreso Promedio (%)": i.progreso_promedio,
+            "Delta Promedio": i.delta_promedio,
+            "% Mejora": i.porcentaje_mejora,
+            "% Meta Alcanzada": i.porcentaje_meta_alcanzada,
+            "% Retroceso": i.porcentaje_retroceso,
             "Correlación Pearson": i.correlacion_pearson,
             "Proyección Cumplimiento": i.proyeccion_cumplimiento,
             "Semáforo": i.estado_semaforo,
@@ -231,30 +238,24 @@ def auditoria_zip():
         } for i in inds])
         zf.writestr("02_indicadores_historicos.csv", df_ind.to_csv(index=False).encode("utf-8-sig"))
 
-        # 3. Participaciones de alumnos en acciones (CSV)
-        parts = (
-            db.session.query(ParticipacionAccion, Estudiante, AccionPME)
-            .join(Estudiante, ParticipacionAccion.estudiante_id == Estudiante.id)
-            .join(AccionPME, ParticipacionAccion.accion_id == AccionPME.id)
-            .all()
-        )
+        # 3. Participaciones de alumnos
+        parts = (db.session.query(ParticipacionAccion, Estudiante, AccionPME)
+                 .join(Estudiante, ParticipacionAccion.estudiante_id == Estudiante.id)
+                 .join(AccionPME, ParticipacionAccion.accion_id == AccionPME.id).all())
         df_part = pd.DataFrame([{
-            "Estudiante": e.nombre_completo,
-            "Matrícula": e.matricula,
+            "Estudiante": e.nombre_completo, "Matrícula": e.matricula,
             "Curso": e.curso.nombre if e.curso else "",
-            "Acción PME": a.nombre,
-            "Código Acción": a.codigo_interno or "",
+            "Acción PME": a.nombre, "Código Acción": a.codigo_interno or "",
             "Horas Asistencia": p.horas_asistencia,
             "Talleres Asistidos": p.asistencia_talleres,
             "Fecha Registro": p.fecha_registro.strftime("%d/%m/%Y") if p.fecha_registro else "",
         } for p, e, a in parts])
         zf.writestr("03_participaciones_alumnos.csv", df_part.to_csv(index=False).encode("utf-8-sig"))
 
-        # 4. Métricas oficiales SIGE (CSV)
+        # 4. Métricas SIGE
         sige = MetricaSIGE.query.order_by(MetricaSIGE.anio, MetricaSIGE.mes).all()
         df_sige = pd.DataFrame([{
-            "Año": m.anio,
-            "Mes": m.mes,
+            "Año": m.anio, "Mes": m.mes,
             "Matrícula Oficial": m.matricula_oficial,
             "% Asistencia Validada": m.asistencia_oficial_validada,
             "Calificaciones Consolidadas": m.calificaciones_consolidadas,
@@ -262,23 +263,39 @@ def auditoria_zip():
         } for m in sige])
         zf.writestr("04_metricas_sige.csv", df_sige.to_csv(index=False).encode("utf-8-sig"))
 
-        # 5. README explicativo
+        # 5. Mediciones de indicadores (nuevo)
+        meds = (db.session.query(MedicionIndicador, DefinicionIndicador, Estudiante)
+                .join(DefinicionIndicador, MedicionIndicador.indicador_def_id == DefinicionIndicador.id)
+                .join(Estudiante, MedicionIndicador.estudiante_id == Estudiante.id)
+                .order_by(DefinicionIndicador.accion_id, MedicionIndicador.periodo).all())
+        df_meds = pd.DataFrame([{
+            "Estudiante": e.nombre_completo, "Matrícula": e.matricula,
+            "Indicador": d.nombre, "Tipo": d.tipo, "Dirección": d.direccion,
+            "Unidad": d.unidad_medida or "", "Línea Base": d.linea_base, "Meta": d.meta,
+            "Periodo": m.periodo, "Valor": m.valor, "Observación": m.observacion or "",
+        } for m, d, e in meds])
+        zf.writestr("05_mediciones_indicadores.csv", df_meds.to_csv(index=False).encode("utf-8-sig"))
+
+        # 6. README
         stats = _estadisticas_globales(acciones)
+        ipa_line = f"- IPA promedio: {stats['ipa_promedio']}%\n" if stats['ipa_promedio'] else ""
         readme = f"""PAQUETE DE AUDITORÍA PME - EduGest
 ====================================
 Generado el: {fecha_gen}
 
 Contenido:
 1. 01_matriz_rendicion_pme.xlsx  → Consolidado de acciones, presupuesto e indicadores.
-2. 02_indicadores_historicos.csv → Evolución mensual de IEA, correlación y semáforos por acción.
-3. 03_participaciones_alumnos.csv→ Trazabilidad de participación de estudiantes en cada acción.
-4. 04_metricas_sige.csv          → Métricas oficiales consolidadas reportadas al SIGE.
+2. 02_indicadores_historicos.csv → Evolución mensual de IEA, IPA, progreso y semáforos.
+3. 03_participaciones_alumnos.csv→ Trazabilidad de participación de estudiantes.
+4. 04_metricas_sige.csv          → Métricas oficiales consolidadas (SIGE).
+5. 05_mediciones_indicadores.csv → Mediciones de indicadores pedagógicos por estudiante.
 
 Resumen global:
 - Acciones registradas: {len(acciones)}
 - Presupuesto asignado: ${stats['total_asignado']:,.0f}
 - Presupuesto ejecutado: ${stats['total_ejecutado']:,.0f} ({stats['pje_ejecucion']}%)
-- Semáforos: {stats['semaforos']['Verde']} Verde / {stats['semaforos']['Amarillo']} Amarillo / {stats['semaforos']['Rojo']} Rojo
+- IEA promedio: {stats['iea_promedio'] or 'N/A'}
+{ipa_line}- Semáforos: {stats['semaforos']['Verde']} Verde / {stats['semaforos']['Amarillo']} Amarillo / {stats['semaforos']['Rojo']} Rojo
 """
         zf.writestr("README.txt", readme.encode("utf-8"))
 

@@ -6,72 +6,44 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; background: #f3f4f6; }
-
         .page { max-width: 800px; margin: 2rem auto; background: white; padding: 48px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-
-        /* Botonera (solo pantalla, se oculta al imprimir) */
         .toolbar { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 100; }
-        .toolbar button, .toolbar a {
-            padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;
-            font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px;
-        }
+        .toolbar button, .toolbar a { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px; }
         .btn-print { background: #4f46e5; color: white; }
         .btn-back { background: white; color: #374151; border: 1px solid #d1d5db !important; }
-
-        /* Encabezado */
         header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #4f46e5; padding-bottom: 16px; margin-bottom: 24px; }
         .est-nombre { font-size: 20px; font-weight: 700; color: #111827; }
         .est-rbd { font-size: 12px; color: #6b7280; margin-top: 2px; }
         .rep-titulo { text-align: right; }
         .rep-titulo h1 { font-size: 17px; color: #4f46e5; }
         .rep-titulo p { font-size: 11px; color: #6b7280; margin-top: 2px; }
-
-        /* KPIs */
-        .kpis { display: flex; gap: 12px; margin-bottom: 28px; }
-        .kpi { flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; }
+        .kpis { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+        .kpi { flex: 1; min-width: 120px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; text-align: center; }
         .kpi .valor { font-size: 18px; font-weight: 700; }
         .kpi .etiqueta { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-
-        /* Secciones */
         h2.seccion { font-size: 14px; color: #111827; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
-
         table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
         th { background: #f3f4f6; text-align: left; padding: 7px 8px; border-bottom: 2px solid #d1d5db; font-size: 9.5px; text-transform: uppercase; color: #4b5563; }
         td { padding: 7px 8px; border-bottom: 1px solid #f3f4f6; }
         tr:nth-child(even) td { background: #fafafa; }
-
         .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 9px; font-weight: 700; }
         .badge-verde { background: #d1fae5; color: #065f46; }
         .badge-amarillo { background: #fef3c7; color: #92400e; }
         .badge-rojo { background: #fee2e2; color: #991b1b; }
         .badge-gris { background: #f3f4f6; color: #6b7280; }
-
         .num { text-align: right; font-variant-numeric: tabular-nums; }
-
         .alerta-item { border-left: 3px solid #ef4444; background: #fef2f2; padding: 8px 12px; margin-bottom: 6px; font-size: 11px; border-radius: 0 6px 6px 0; }
         .sin-alertas { background: #f0fdf4; color: #166534; padding: 12px; border-radius: 6px; font-size: 12px; text-align: center; }
-
-        /* Firmas */
         .firmas { display: flex; justify-content: space-around; margin-top: 56px; }
         .firma { text-align: center; width: 240px; }
         .firma .linea { border-top: 1px solid #374151; margin-bottom: 6px; }
         .firma p { font-size: 11px; color: #374151; }
-
         footer { margin-top: 40px; text-align: center; font-size: 9.5px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 12px; }
-
-        /* Impresión */
-        @media print {
-            body { background: white; }
-            .toolbar { display: none !important; }
-            .page { box-shadow: none; margin: 0; max-width: 100%; padding: 20px; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; }
-        }
+        @media print { body { background: white; } .toolbar { display: none !important; } .page { box-shadow: none; margin: 0; max-width: 100%; padding: 20px; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
         @page { size: A4; margin: 12mm; }
     </style>
 </head>
 <body>
-    <!-- Botonera (se oculta al imprimir) -->
     <div class="toolbar no-print">
         <a href="/reportes/" class="btn-back">← Volver</a>
         <button onclick="window.print()" class="btn-print">🖨️ Imprimir / Guardar como PDF</button>
@@ -81,7 +53,7 @@
         <header>
             <div>
                 <div class="est-nombre">{{ establecimiento.nombre if establecimiento else 'Establecimiento Educacional' }}</div>
-                <div class="est-rbd">RBD: {{ establecimiento.rbd if establecimiento else 'N/A' }}{% if establecimiento.direccion %} · {{ establecimiento.direccion }}{% endif %}</div>
+                <div class="est-rbd">RBD: {{ establecimiento.rbd if establecimiento else 'N/A' }}{% if establecimiento and establecimiento.direccion %} · {{ establecimiento.direccion }}{% endif %}</div>
             </div>
             <div class="rep-titulo">
                 <h1>REPORTE EJECUTIVO PME</h1>
@@ -89,7 +61,7 @@
             </div>
         </header>
 
-        <!-- KPIs Globales -->
+        <!-- KPIs -->
         <div class="kpis">
             <div class="kpi">
                 <div class="valor">${{ "{:,.0f}".format(total_asignado) }}</div>
@@ -107,14 +79,18 @@
                 <div class="valor">{{ iea_promedio if iea_promedio is not none else 'N/A' }}</div>
                 <div class="etiqueta">IEA Promedio (/5.0)</div>
             </div>
+            {% if ipa_promedio is not none %}
+            <div class="kpi" style="border-color: #818cf8;">
+                <div class="valor" style="color: #4f46e5;">{{ ipa_promedio }}%</div>
+                <div class="etiqueta">IPA Promedio</div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Semáforos -->
         <h2 class="seccion">Estado de Cumplimiento del PME</h2>
         <table>
-            <thead>
-                <tr><th>Semáforo</th><th class="num">N° de Acciones</th><th>Interpretación</th></tr>
-            </thead>
+            <thead><tr><th>Semáforo</th><th class="num">N° de Acciones</th><th>Interpretación</th></tr></thead>
             <tbody>
                 <tr><td><span class="badge badge-verde">VERDE</span></td><td class="num">{{ semaforos.Verde }}</td><td>Proyección ≥ 95% de cumplimiento de meta</td></tr>
                 <tr><td><span class="badge badge-amarillo">AMARILLO</span></td><td class="num">{{ semaforos.Amarillo }}</td><td>Proyección entre 85% y 95% — requiere seguimiento</td></tr>
@@ -128,14 +104,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>Código</th>
-                    <th>Acción</th>
-                    <th>Dimensión</th>
-                    <th class="num">Asignado</th>
-                    <th class="num">Ejecutado</th>
+                    <th>Código</th><th>Acción</th><th>Dimensión</th>
+                    <th class="num">Asignado</th><th class="num">Ejecutado</th>
                     <th class="num">IEA</th>
-                    <th class="num">Proy.</th>
-                    <th>Semáforo</th>
+                    {% if ipa_promedio is not none %}<th class="num">IPA</th><th class="num">Progreso</th>{% endif %}
+                    <th class="num">Proy.</th><th>Semáforo</th>
                 </tr>
             </thead>
             <tbody>
@@ -147,6 +120,10 @@
                     <td class="num">${{ "{:,.0f}".format(f.asignado) }}</td>
                     <td class="num {% if f.pje > 100 %}badge-rojo{% endif %}">${{ "{:,.0f}".format(f.ejecutado) }}</td>
                     <td class="num">{{ f.iea if f.iea is not none else '—' }}</td>
+                    {% if ipa_promedio is not none %}
+                    <td class="num">{{ f.ipa ~ '%' if f.ipa is not none else '—' }}</td>
+                    <td class="num">{{ f.progreso ~ '%' if f.progreso is not none else '—' }}</td>
+                    {% endif %}
                     <td class="num">{{ f.proyeccion ~ '%' if f.proyeccion is not none else '—' }}</td>
                     <td>
                         {% if f.semaforo == 'Verde' %}<span class="badge badge-verde">VERDE</span>
@@ -166,7 +143,8 @@
             <strong>{{ a.nombre }}</strong> ({{ a.codigo }}) —
             {% if a.semaforo == 'Rojo' %}Proyección crítica{% else %}En riesgo{% endif %}:
             {{ a.proyeccion ~ '%' if a.proyeccion is not none else 'sin datos' }} de cumplimiento proyectado.
-            {% if a.pje > 100 %} ⚠ Además presenta sobregiro presupuestario ({{ a.pje }}% ejecutado).{% endif %}
+            {% if a.ipa is not none %} IPA: {{ a.ipa }}%.{% endif %}
+            {% if a.pje > 100 %} ⚠ Sobregiro presupuestario ({{ a.pje }}% ejecutado).{% endif %}
         </div>
         {% else %}
         <div class="sin-alertas">✓ No hay acciones en estado de alerta (Rojo/Amarillo) al momento de la generación.</div>
@@ -174,18 +152,12 @@
 
         <!-- Firmas -->
         <div class="firmas">
-            <div class="firma">
-                <div class="linea"></div>
-                <p><strong>Director(a) del Establecimiento</strong></p>
-            </div>
-            <div class="firma">
-                <div class="linea"></div>
-                <p><strong>Sostenedor(a)</strong></p>
-            </div>
+            <div class="firma"><div class="linea"></div><p><strong>Director(a) del Establecimiento</strong></p></div>
+            <div class="firma"><div class="linea"></div><p><strong>Sostenedor(a)</strong></p></div>
         </div>
 
         <footer>
-            Documento generado automáticamente por EduGest PME · Índice de Eficiencia de Acción (IEA), Correlación de Pearson y Proyección de Cumplimiento calculados sobre datos internos (App Ponderado) y oficiales (SIGE).
+            Documento generado automáticamente por EduGest PME · IEA, IPA, Pearson, Proyección y Semáforo calculados sobre datos internos (App Ponderado) y oficiales (SIGE).
         </footer>
     </div>
 </body>
