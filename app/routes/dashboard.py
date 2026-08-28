@@ -20,14 +20,13 @@ def index():
     total_ejecutado = db.session.query(func.sum(AccionPME.presupuesto_ejecutado)).scalar() or 0.0
     porcentaje_global = (total_ejecutado / total_asignado * 100) if total_asignado > 0 else 0.0
 
-    # 2. Acciones activas + último indicador de cada una
+    # 2. Acciones activas + último indicador
     acciones = AccionPME.query.filter(
         AccionPME.estado.in_(["Planificada", "En Ejecución"])
     ).all()
 
     alertas = []
     semaforo = {"Verde": 0, "Amarillo": 0, "Rojo": 0, "Sin Datos": 0}
-
     ieas, ipas, progresos = [], [], []
     pct_mejoras, pct_metas, pct_retrocesos = [], [], []
     acciones_detalle = []
@@ -37,10 +36,8 @@ def index():
         ind = acc.indicadores.order_by(IndicadorAccion.mes.desc()).first()
         latest_map[acc.id] = ind
         estado = ind.estado_semaforo if ind else "Sin Datos"
-
         if estado in semaforo:
             semaforo[estado] += 1
-
         if estado in ("Rojo", "Amarillo"):
             alertas.append({
                 "accion": acc.nombre, "estado": estado,
@@ -48,7 +45,6 @@ def index():
                 "proyeccion": ind.proyeccion_cumplimiento if ind else None,
                 "ipa": ind.ipa if ind else None,
             })
-
         if ind:
             for val, lst in [(ind.iea, ieas), (ind.ipa, ipas),
                              (ind.progreso_promedio, progresos),
@@ -89,8 +85,28 @@ def index():
             "progreso": round(float(np.mean(dim_ipas)), 1) if dim_ipas else None,
             "count": len(dim_ipas),
         })
-
     has_dim_data = any(d["progreso"] is not None for d in dim_data)
+
+    # 5. Progreso por objetivo (Etapa 21)
+    objetivos_data = []
+    for dim in DimensionPME.query.order_by(DimensionPME.orden).all():
+        for obj in dim.objetivos.all():
+            obj_ipas = []
+            for a in obj.acciones.all():
+                ind = latest_map.get(a.id)
+                if ind and ind.ipa is not None:
+                    obj_ipas.append(ind.ipa)
+            objetivos_data.append({
+                "nombre": obj.nombre,
+                "dimension": dim.nombre,
+                "progreso": round(float(np.mean(obj_ipas)), 1) if obj_ipas else None,
+                "count": len(obj_ipas),
+            })
+    has_obj_data = any(o["progreso"] is not None for o in objetivos_data)
+
+    # 6. Indicador institucional (Etapa 23)
+    dim_con_datos = [d["progreso"] for d in dim_data if d["progreso"] is not None]
+    progreso_pme = round(float(np.mean(dim_con_datos)), 1) if dim_con_datos else None
 
     return render_template("dashboard/index.html",
         total_asignado=total_asignado, total_ejecutado=total_ejecutado,
@@ -102,6 +118,8 @@ def index():
         pct_meta_promedio=avg(pct_metas),
         pct_retroceso_promedio=avg(pct_retrocesos),
         dimensiones_data=dim_data, has_dim_data=has_dim_data,
+        objetivos_data=objetivos_data, has_obj_data=has_obj_data,
+        progreso_pme=progreso_pme,
         acciones_detalle=acciones_detalle,
     )
 

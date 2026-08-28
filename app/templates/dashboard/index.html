@@ -25,9 +25,7 @@
             </div>
             <p class="text-sm text-gray-500 mb-1">Presupuesto PME</p>
             <p class="text-2xl font-bold text-gray-900">${{ "{:,.0f}".format(total_ejecutado) }} <span class="text-sm font-normal text-gray-400">/ ${{ "{:,.0f}".format(total_asignado) }}</span></p>
-            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-indigo-600 rounded-full" style="width: {{ porcentaje_global }}%"></div>
-            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-600 rounded-full" style="width: {{ porcentaje_global }}%"></div></div>
         </div>
         <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div class="flex justify-between items-start mb-4">
@@ -43,15 +41,8 @@
                 <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-chart-line"></i></div>
             </div>
             <p class="text-sm text-gray-500 mb-1">IEA Promedio</p>
-            <p class="text-2xl font-bold text-gray-900">
-                {{ iea_promedio if iea_promedio is not none else 'N/A' }}
-                {% if iea_promedio is not none %}<span class="text-sm font-normal text-gray-400">/ 5.0</span>{% endif %}
-            </p>
-            {% if iea_promedio is not none %}
-            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-blue-600 rounded-full" style="width: {{ (iea_promedio / 5 * 100)|round(1) }}%"></div>
-            </div>
-            {% endif %}
+            <p class="text-2xl font-bold text-gray-900">{{ iea_promedio if iea_promedio is not none else 'N/A' }}{% if iea_promedio is not none %}<span class="text-sm font-normal text-gray-400">/ 5.0</span>{% endif %}</p>
+            {% if iea_promedio is not none %}<div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width: {{ (iea_promedio / 5 * 100)|round(1) }}%"></div></div>{% endif %}
         </div>
         <div class="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-sm">
             <div class="flex justify-between items-start mb-4">
@@ -64,7 +55,7 @@
         </div>
     </div>
 
-    <!-- KPI Row 2: Nuevo modelo (solo si hay datos IPA) -->
+    <!-- KPI Row 2: Modelo nuevo -->
     {% if ipas_count > 0 %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div class="bg-white rounded-xl p-6 border border-indigo-200 shadow-sm">
@@ -94,13 +85,30 @@
     </div>
     {% endif %}
 
+    <!-- Indicador Institucional (Etapa 23) -->
+    {% if progreso_pme is not none %}
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-xl p-6 mb-8 text-white">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center"><i class="fas fa-school text-2xl"></i></div>
+                <div>
+                    <p class="text-sm text-indigo-200 uppercase tracking-wider">Índice de Progreso PME</p>
+                    <p class="text-4xl font-bold">{{ progreso_pme }}%</p>
+                </div>
+            </div>
+            <div class="flex-1 max-w-md">
+                <div class="h-3 bg-white/20 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width: {{ progreso_pme }}%"></div></div>
+                <p class="text-xs text-indigo-200 mt-2">Progreso global del establecimiento hacia sus objetivos PME</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Doughnut + Alertas -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">Distribución de Acciones (Semáforo PME)</h3>
-            <div class="h-64 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200 p-4">
-                <canvas id="semaforoChart"></canvas>
-            </div>
+            <div class="h-64 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200 p-4"><canvas id="semaforoChart"></canvas></div>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center gap-2 mb-4">
@@ -112,11 +120,8 @@
                 <div class="p-4 border border-gray-200 rounded-lg hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-2">
                         <h4 class="font-medium text-sm text-gray-900">{{ alerta.accion[:40] }}{% if alerta.accion|length > 40 %}...{% endif %}</h4>
-                        {% if alerta.estado == 'Rojo' %}
-                        <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium">CRÍTICO</span>
-                        {% else %}
-                        <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-medium">ALERTA</span>
-                        {% endif %}
+                        {% if alerta.estado == 'Rojo' %}<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium">CRÍTICO</span>
+                        {% else %}<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-medium">ALERTA</span>{% endif %}
                     </div>
                     <p class="text-xs text-gray-500">IEA: {{ alerta.iea if alerta.iea is not none else 'N/A' }}{% if alerta.ipa is not none %} · IPA: {{ alerta.ipa }}%{% endif %}</p>
                     <p class="text-xs text-gray-500">Proyección: {{ (alerta.proyeccion * 100)|round(1) if alerta.proyeccion is not none else 'N/A' }}%</p>
@@ -128,7 +133,7 @@
         </div>
     </div>
 
-    <!-- Progreso por Dimensión (solo si hay datos) -->
+    <!-- Progreso por Dimensión (Etapa 22) -->
     {% if has_dim_data %}
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
         <div class="flex items-center gap-2 mb-6">
@@ -142,11 +147,36 @@
                 <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div class="h-full rounded-full {% if dim.progreso is none %}bg-gray-300{% elif dim.progreso >= 80 %}bg-green-500{% elif dim.progreso >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ dim.progreso or 0 }}%"></div>
                 </div>
-                <span class="w-20 text-right text-sm font-bold {% if dim.progreso is none %}text-gray-400{% elif dim.progreso >= 80 %}text-green-600{% elif dim.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                    {% if dim.progreso is not none %}{{ dim.progreso }}%{% else %}Sin datos{% endif %}
-                </span>
+                <span class="w-20 text-right text-sm font-bold {% if dim.progreso is none %}text-gray-400{% elif dim.progreso >= 80 %}text-green-600{% elif dim.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">{% if dim.progreso is not none %}{{ dim.progreso }}%{% else %}Sin datos{% endif %}</span>
                 <span class="text-xs text-gray-400">{{ dim.count }} acc.</span>
             </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Progreso por Objetivo (Etapa 21) -->
+    {% if has_obj_data %}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+        <div class="flex items-center gap-2 mb-6">
+            <i class="fas fa-crosshairs text-indigo-600"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Progreso por Objetivo PME</h3>
+        </div>
+        <div class="space-y-3">
+            {% for obj in objetivos_data %}
+            {% if obj.progreso is not none %}
+            <div class="flex items-center gap-4">
+                <div class="w-56 min-w-0">
+                    <p class="text-sm font-medium text-gray-700 truncate">{{ obj.nombre }}</p>
+                    <p class="text-xs text-gray-400">{{ obj.dimension }}</p>
+                </div>
+                <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full {% if obj.progreso >= 80 %}bg-green-500{% elif obj.progreso >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ obj.progreso }}%"></div>
+                </div>
+                <span class="w-16 text-right text-sm font-bold {% if obj.progreso >= 80 %}text-green-600{% elif obj.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ obj.progreso }}%</span>
+                <span class="text-xs text-gray-400 w-12">{{ obj.count }} acc.</span>
+            </div>
+            {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -156,17 +186,13 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-semibold text-gray-900">Seguimiento de Acciones PME</h3>
-            <a href="{{ url_for('reportes.exportar_excel') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
-                <i class="fas fa-download"></i> Exportar
-            </a>
+            <a href="{{ url_for('reportes.exportar_excel') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2"><i class="fas fa-download"></i> Exportar</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-left text-gray-500">
-                        <th class="pb-3 font-medium">Acción</th>
-                        <th class="pb-3 font-medium">Semáforo</th>
-                        <th class="pb-3 font-medium">IEA</th>
+                        <th class="pb-3 font-medium">Acción</th><th class="pb-3 font-medium">Semáforo</th><th class="pb-3 font-medium">IEA</th>
                         {% if ipas_count > 0 %}<th class="pb-3 font-medium">IPA</th><th class="pb-3 font-medium">Progreso</th>{% endif %}
                         <th class="pb-3 font-medium">Proyección</th>
                     </tr>
@@ -175,18 +201,11 @@
                     {% for acc in acciones_detalle %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="py-4 font-medium text-gray-900">{{ acc.nombre }}</td>
-                        <td class="py-4">
-                            <span class="w-2.5 h-2.5 rounded-full inline-block {% if acc.estado == 'Verde' %}bg-green-500{% elif acc.estado == 'Amarillo' %}bg-yellow-500{% elif acc.estado == 'Rojo' %}bg-red-500{% else %}bg-gray-300{% endif %}"></span>
-                            {{ acc.estado }}
-                        </td>
+                        <td class="py-4"><span class="w-2.5 h-2.5 rounded-full inline-block {% if acc.estado == 'Verde' %}bg-green-500{% elif acc.estado == 'Amarillo' %}bg-yellow-500{% elif acc.estado == 'Rojo' %}bg-red-500{% else %}bg-gray-300{% endif %}"></span> {{ acc.estado }}</td>
                         <td class="py-4 text-gray-900">{{ acc.iea if acc.iea is not none else 'N/A' }}</td>
                         {% if ipas_count > 0 %}
-                        <td class="py-4 font-semibold {% if acc.ipa is none %}text-gray-400{% elif acc.ipa >= 80 %}text-green-600{% elif acc.ipa >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                            {% if acc.ipa is not none %}{{ acc.ipa }}%{% else %}—{% endif %}
-                        </td>
-                        <td class="py-4 font-semibold {% if acc.progreso is none %}text-gray-400{% elif acc.progreso >= 80 %}text-green-600{% elif acc.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                            {% if acc.progreso is not none %}{{ acc.progreso }}%{% else %}—{% endif %}
-                        </td>
+                        <td class="py-4 font-semibold {% if acc.ipa is none %}text-gray-400{% elif acc.ipa >= 80 %}text-green-600{% elif acc.ipa >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">{% if acc.ipa is not none %}{{ acc.ipa }}%{% else %}—{% endif %}</td>
+                        <td class="py-4 font-semibold {% if acc.progreso is none %}text-gray-400{% elif acc.progreso >= 80 %}text-green-600{% elif acc.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">{% if acc.progreso is not none %}{{ acc.progreso }}%{% else %}—{% endif %}</td>
                         {% endif %}
                         <td class="py-4 text-gray-900">{% if acc.proyeccion is not none %}{{ (acc.proyeccion * 100)|round(1) }}%{% else %}N/A{% endif %}</td>
                     </tr>
@@ -207,16 +226,9 @@ document.addEventListener("DOMContentLoaded", function() {
         type: 'doughnut',
         data: {
             labels: ['Verde (Cumple)', 'Amarillo (Riesgo)', 'Rojo (Crítico)', 'Sin Datos'],
-            datasets: [{
-                data: [{{ grafico_semaforo.Verde }}, {{ grafico_semaforo.Amarillo }}, {{ grafico_semaforo.Rojo }}, {{ grafico_semaforo['Sin Datos'] }}],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e5e7eb'],
-                borderWidth: 1
-            }]
+            datasets: [{ data: [{{ grafico_semaforo.Verde }}, {{ grafico_semaforo.Amarillo }}, {{ grafico_semaforo.Rojo }}, {{ grafico_semaforo['Sin Datos'] }}], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e5e7eb'], borderWidth: 1 }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
 });
 </script>
