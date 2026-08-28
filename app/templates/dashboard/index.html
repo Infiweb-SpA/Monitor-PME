@@ -1,7 +1,5 @@
 {% extends "layouts/base.html" %}
-
 {% block title %}Dashboard - EduGest PME{% endblock %}
-
 {% block content %}
 <div class="p-8">
     <!-- Header -->
@@ -11,107 +9,107 @@
             <p class="text-gray-500 mt-1">Visión general del estado y avance del Plan de Mejoramiento Educativo.</p>
         </div>
         <div class="flex items-center gap-3">
-            <div class="relative">
-                <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
-                <input type="text" placeholder="Search..." class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64">
-            </div>
             <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 text-sm">
                 <i class="far fa-calendar text-gray-500"></i>
-                <span>Academic Year 2026</span>
+                <span>Año Lectivo 2026</span>
             </div>
-            <button class="w-9 h-9 bg-white rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-                <i class="far fa-bell"></i>
-            </button>
-            <button class="w-9 h-9 bg-white rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-                <i class="far fa-user"></i>
-            </button>
         </div>
     </div>
 
-    <!-- KPI Cards Dinámicos -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- KPI Row 1 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div class="flex justify-between items-start mb-4">
-                <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
+                <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600"><i class="fas fa-money-bill-wave"></i></div>
                 <span class="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded">Anual</span>
             </div>
             <p class="text-sm text-gray-500 mb-1">Presupuesto PME</p>
-            <!-- Datos dinámicos -->
             <p class="text-2xl font-bold text-gray-900">${{ "{:,.0f}".format(total_ejecutado) }} <span class="text-sm font-normal text-gray-400">/ ${{ "{:,.0f}".format(total_asignado) }}</span></p>
             <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div class="h-full bg-indigo-600 rounded-full" style="width: {{ porcentaje_global }}%"></div>
             </div>
         </div>
-
         <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div class="flex justify-between items-start mb-4">
-                <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded flex items-center gap-1">
-                    <i class="fas fa-arrow-up text-xs"></i> Global
-                </span>
+                <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600"><i class="fas fa-check-circle"></i></div>
+                <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">Global</span>
             </div>
             <p class="text-sm text-gray-500 mb-1">% Ejecución Presupuestaria</p>
             <p class="text-2xl font-bold text-gray-900">{{ porcentaje_global }}%</p>
             <p class="text-xs text-gray-400 mt-1">Presupuesto gastado vs planificado</p>
         </div>
-
         <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div class="flex justify-between items-start mb-4">
-                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                    <i class="fas fa-chart-line"></i>
-                </div>
+                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-chart-line"></i></div>
             </div>
-            <p class="text-sm text-gray-500 mb-1">Índice de Eficiencia (IEA)</p>
-            <p class="text-2xl font-bold text-gray-900">4.2 <span class="text-sm font-normal text-gray-400">/ 5.0</span></p>
-            <div class="mt-3 flex gap-1">
-                <div class="h-1.5 flex-1 bg-gray-800 rounded-full"></div>
-                <div class="h-1.5 flex-1 bg-gray-800 rounded-full"></div>
-                <div class="h-1.5 flex-1 bg-gray-800 rounded-full"></div>
-                <div class="h-1.5 flex-1 bg-gray-800 rounded-full"></div>
-                <div class="h-1.5 flex-1 bg-gray-200 rounded-full"></div>
+            <p class="text-sm text-gray-500 mb-1">IEA Promedio</p>
+            <p class="text-2xl font-bold text-gray-900">
+                {{ iea_promedio if iea_promedio is not none else 'N/A' }}
+                {% if iea_promedio is not none %}<span class="text-sm font-normal text-gray-400">/ 5.0</span>{% endif %}
+            </p>
+            {% if iea_promedio is not none %}
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-600 rounded-full" style="width: {{ (iea_promedio / 5 * 100)|round(1) }}%"></div>
             </div>
+            {% endif %}
         </div>
-
         <div class="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-sm">
             <div class="flex justify-between items-start mb-4">
-                <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-600">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
+                <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-600"><i class="fas fa-exclamation-triangle"></i></div>
                 <span class="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded">Críticas</span>
             </div>
             <p class="text-sm text-gray-500 mb-1">Alertas Activas</p>
-            <!-- Conteo dinámico de alertas -->
             <p class="text-2xl font-bold text-red-600">{{ alertas|length }}</p>
             <p class="text-xs text-gray-400 mt-1">Requieren atención inmediata</p>
         </div>
     </div>
 
+    <!-- KPI Row 2: Nuevo modelo (solo si hay datos IPA) -->
+    {% if ipas_count > 0 %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-xl p-6 border border-indigo-200 shadow-sm">
+            <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 mb-4"><i class="fas fa-bullseye"></i></div>
+            <p class="text-sm text-gray-500 mb-1">IPA Promedio</p>
+            <p class="text-2xl font-bold text-indigo-700">{{ ipa_promedio }}%</p>
+            <p class="text-xs text-gray-400 mt-1">Índice de Progreso de la Acción</p>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div class="w-10 h-10 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600 mb-4"><i class="fas fa-route"></i></div>
+            <p class="text-sm text-gray-500 mb-1">Progreso Promedio</p>
+            <p class="text-2xl font-bold text-gray-900">{{ progreso_promedio }}%</p>
+            <p class="text-xs text-gray-400 mt-1">Hacia metas definidas</p>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600 mb-4"><i class="fas fa-arrow-up"></i></div>
+            <p class="text-sm text-gray-500 mb-1">% Estudiantes Mejoraron</p>
+            <p class="text-2xl font-bold text-green-600">{{ pct_mejora_promedio }}%</p>
+            <p class="text-xs text-gray-400 mt-1">Promedio entre acciones</p>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 mb-4"><i class="fas fa-trophy"></i></div>
+            <p class="text-sm text-gray-500 mb-1">% Meta Alcanzada</p>
+            <p class="text-2xl font-bold text-amber-600">{{ pct_meta_promedio }}%</p>
+            <p class="text-xs text-gray-400 mt-1">Estudiantes que superaron la meta</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Doughnut + Alertas -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Gráfico Chart.js Dinámico -->
         <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-semibold text-gray-900">Distribución de Acciones (Semáforo PME)</h3>
-                <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-ellipsis-v"></i></button>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Distribución de Acciones (Semáforo PME)</h3>
             <div class="h-64 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200 p-4">
                 <canvas id="semaforoChart"></canvas>
             </div>
         </div>
-
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center gap-2 mb-4">
                 <i class="fas fa-exclamation-circle text-red-500"></i>
-                <h3 class="text-lg font-semibold text-gray-900">Alertas de Impacto Crítico</h3>
+                <h3 class="text-lg font-semibold text-gray-900">Alertas de Impacto</h3>
             </div>
-            <p class="text-xs text-gray-500 mb-4">Proyección de cumplimiento bajo o IEA crítico</p>
             <div class="space-y-3">
-                <!-- Bucle dinámico de alertas -->
                 {% for alerta in alertas %}
-                <div class="p-4 border border-gray-200 rounded-lg hover:shadow-md transition cursor-pointer">
+                <div class="p-4 border border-gray-200 rounded-lg hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-2">
                         <h4 class="font-medium text-sm text-gray-900">{{ alerta.accion[:40] }}{% if alerta.accion|length > 40 %}...{% endif %}</h4>
                         {% if alerta.estado == 'Rojo' %}
@@ -120,7 +118,7 @@
                         <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-medium">ALERTA</span>
                         {% endif %}
                     </div>
-                    <p class="text-xs text-gray-500">IEA: {{ alerta.iea if alerta.iea is not none else 'N/A' }}</p>
+                    <p class="text-xs text-gray-500">IEA: {{ alerta.iea if alerta.iea is not none else 'N/A' }}{% if alerta.ipa is not none %} · IPA: {{ alerta.ipa }}%{% endif %}</p>
                     <p class="text-xs text-gray-500">Proyección: {{ (alerta.proyeccion * 100)|round(1) if alerta.proyeccion is not none else 'N/A' }}%</p>
                 </div>
                 {% else %}
@@ -130,43 +128,70 @@
         </div>
     </div>
 
+    <!-- Progreso por Dimensión (solo si hay datos) -->
+    {% if has_dim_data %}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+        <div class="flex items-center gap-2 mb-6">
+            <i class="fas fa-layer-group text-indigo-600"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Progreso por Dimensión PME</h3>
+        </div>
+        <div class="space-y-4">
+            {% for dim in dimensiones_data %}
+            <div class="flex items-center gap-4">
+                <span class="w-48 text-sm font-medium text-gray-700">{{ dim.nombre }}</span>
+                <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full {% if dim.progreso is none %}bg-gray-300{% elif dim.progreso >= 80 %}bg-green-500{% elif dim.progreso >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ dim.progreso or 0 }}%"></div>
+                </div>
+                <span class="w-20 text-right text-sm font-bold {% if dim.progreso is none %}text-gray-400{% elif dim.progreso >= 80 %}text-green-600{% elif dim.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                    {% if dim.progreso is not none %}{{ dim.progreso }}%{% else %}Sin datos{% endif %}
+                </span>
+                <span class="text-xs text-gray-400">{{ dim.count }} acc.</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Seguimiento -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-semibold text-gray-900">Seguimiento de Acciones PME</h3>
-            <div class="flex gap-2">
-                <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2">
-                    <i class="fas fa-filter"></i> Filtrar
-                </button>
-                <a href="{{ url_for('reportes.exportar_excel') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
-                    <i class="fas fa-download"></i> Exportar
-                </a>
-            </div>
+            <a href="{{ url_for('reportes.exportar_excel') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
+                <i class="fas fa-download"></i> Exportar
+            </a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-left text-gray-500">
-                        <th class="pb-3 font-medium">Nombre de la Acción</th>
-                        <th class="pb-3 font-medium">Estado Semáforo</th>
+                        <th class="pb-3 font-medium">Acción</th>
+                        <th class="pb-3 font-medium">Semáforo</th>
                         <th class="pb-3 font-medium">IEA</th>
+                        {% if ipas_count > 0 %}<th class="pb-3 font-medium">IPA</th><th class="pb-3 font-medium">Progreso</th>{% endif %}
                         <th class="pb-3 font-medium">Proyección</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for alerta in alertas %}
+                    {% for acc in acciones_detalle %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-4 font-medium text-gray-900">{{ alerta.accion }}</td>
+                        <td class="py-4 font-medium text-gray-900">{{ acc.nombre }}</td>
                         <td class="py-4">
-                            <span class="w-2.5 h-2.5 rounded-full inline-block {% if alerta.estado == 'Rojo' %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
-                            {{ alerta.estado }}
+                            <span class="w-2.5 h-2.5 rounded-full inline-block {% if acc.estado == 'Verde' %}bg-green-500{% elif acc.estado == 'Amarillo' %}bg-yellow-500{% elif acc.estado == 'Rojo' %}bg-red-500{% else %}bg-gray-300{% endif %}"></span>
+                            {{ acc.estado }}
                         </td>
-                        <td class="py-4 text-gray-900">{{ alerta.iea if alerta.iea is not none else 'N/A' }}</td>
-                        <td class="py-4 text-gray-900">{{ (alerta.proyeccion * 100)|round(1) if alerta.proyeccion is not none else 'N/A' }}%</td>
+                        <td class="py-4 text-gray-900">{{ acc.iea if acc.iea is not none else 'N/A' }}</td>
+                        {% if ipas_count > 0 %}
+                        <td class="py-4 font-semibold {% if acc.ipa is none %}text-gray-400{% elif acc.ipa >= 80 %}text-green-600{% elif acc.ipa >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {% if acc.ipa is not none %}{{ acc.ipa }}%{% else %}—{% endif %}
+                        </td>
+                        <td class="py-4 font-semibold {% if acc.progreso is none %}text-gray-400{% elif acc.progreso >= 80 %}text-green-600{% elif acc.progreso >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {% if acc.progreso is not none %}{{ acc.progreso }}%{% else %}—{% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="py-4 text-gray-900">{% if acc.proyeccion is not none %}{{ (acc.proyeccion * 100)|round(1) }}%{% else %}N/A{% endif %}</td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="4" class="py-4 text-center text-gray-400">Cargue datos en el módulo de Ingesta para ver el seguimiento.</td>
-                    </tr>
+                    <tr><td colspan="{{ 6 if ipas_count > 0 else 4 }}" class="py-4 text-center text-gray-400">Cargue datos en el módulo de Ingesta para ver el seguimiento.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -174,36 +199,25 @@
     </div>
 </div>
 
-<!-- Script para Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('semaforoChart').getContext('2d');
-        const semaforoChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Verde (Cumple)', 'Amarillo (Riesgo)', 'Rojo (Crítico)', 'Sin Datos'],
-                datasets: [{
-                    data: [
-                        {{ grafico_semaforo.Verde }},
-                        {{ grafico_semaforo.Amarillo }},
-                        {{ grafico_semaforo.Rojo }},
-                        {{ grafico_semaforo['Sin Datos'] }}
-                    ],
-                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e5e7eb'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    }
-                }
-            }
-        });
+document.addEventListener("DOMContentLoaded", function() {
+    var ctx = document.getElementById('semaforoChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Verde (Cumple)', 'Amarillo (Riesgo)', 'Rojo (Crítico)', 'Sin Datos'],
+            datasets: [{
+                data: [{{ grafico_semaforo.Verde }}, {{ grafico_semaforo.Amarillo }}, {{ grafico_semaforo.Rojo }}, {{ grafico_semaforo['Sin Datos'] }}],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e5e7eb'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
     });
+});
 </script>
 {% endblock %}

@@ -7,8 +7,8 @@ from flask_login import login_required
 import pandas as pd
 from app.extensions import db
 from app.models.pme import AccionPME, ObjetivoPME, DimensionPME
-from app.models.metrics import IndicadorAccion, DefinicionIndicador  # NUEVO: importar DefinicionIndicador
-from app.services.pme_engine import obtener_impacto_individual
+from app.models.metrics import IndicadorAccion, DefinicionIndicador
+from app.services.pme_engine import obtener_impacto_individual, obtener_impacto_individual_nuevo
 from app.utils import parse_date
 
 
@@ -30,11 +30,22 @@ def detalle(accion_id):
     accion = AccionPME.query.get_or_404(accion_id)
     indicador = accion.indicadores.order_by(IndicadorAccion.mes.desc()).first()
     historico = accion.indicadores.order_by(IndicadorAccion.mes.asc()).all()
-    alumnos = obtener_impacto_individual(accion_id)
+
+    # Detectar si la acción usa modelo nuevo o legacy
+    definiciones = DefinicionIndicador.query.filter_by(
+        accion_id=accion_id, activo=True
+    ).all()
+
+    if definiciones:
+        alumnos = obtener_impacto_individual_nuevo(accion_id)
+    else:
+        alumnos = obtener_impacto_individual(accion_id)
+
     return render_template(
         "acciones/detalle.html",
         accion=accion, indicador=indicador,
-        historico=historico, alumnos=alumnos
+        historico=historico, alumnos=alumnos,
+        definiciones=definiciones,
     )
 
 
@@ -76,7 +87,7 @@ def nueva_accion():
         db.session.add(nueva)
         db.session.commit()
 
-        # --- NUEVO: Procesar indicadores de evaluación (modelo nuevo) ---
+        # Procesar indicadores de evaluación (modelo nuevo)
         nombres_ind = request.form.getlist('ind_nombre[]')
         tipos_ind = request.form.getlist('ind_tipo[]')
         unidades_ind = request.form.getlist('ind_unidad[]')
@@ -123,7 +134,7 @@ def nueva_accion():
     return render_template("acciones/nueva.html", objetivos=objetivos)
 
 
-# --- LÓGICA DE EXCEL (sin cambios) ---
+# --- LÓGICA DE EXCEL ---
 
 @acciones_bp.route("/plantilla_excel")
 @login_required
@@ -208,7 +219,7 @@ def cargar_excel():
     try:
         df = pd.read_excel(file)
         if 'Nombre Acción' not in df.columns or 'Objetivo ID' not in df.columns:
-            flash("El Excel no tiene las columnas requeridas (Nombre Acción, Objetivo ID).", "error")
+            flash("El Excel no tiene las columnas requeridas.", "error")
             return redirect(url_for("ingesta.index"))
         df = df.where(pd.notnull(df), None)
         datos = df.to_dict(orient='records')

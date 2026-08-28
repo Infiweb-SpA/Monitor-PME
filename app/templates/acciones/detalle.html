@@ -1,9 +1,9 @@
 {% extends "layouts/base.html" %}
-
 {% block title %}Detalle Acción - EduGest{% endblock %}
-
 {% block content %}
 <div class="p-8">
+    {% set es_nuevo = definiciones|length > 0 %}
+
     <!-- Breadcrumb -->
     <div class="mb-6">
         <a href="{{ url_for('acciones.index') }}" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2">
@@ -11,11 +11,45 @@
         </a>
     </div>
 
-        <!-- Header Card Dinámico -->
+    <!-- IPA Summary Banner (solo modelo nuevo) -->
+    {% if es_nuevo and indicador and indicador.ipa is not none %}
+    <div class="mb-6 flex flex-wrap gap-3">
+        <div class="bg-white rounded-lg border border-indigo-200 shadow-sm px-5 py-3">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">IPA</p>
+            <p class="text-xl font-bold text-indigo-700">{{ indicador.ipa }}%</p>
+        </div>
+        {% if indicador.progreso_promedio is not none %}
+        <div class="bg-white rounded-lg border shadow-sm px-5 py-3">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Progreso Prom.</p>
+            <p class="text-xl font-bold">{{ indicador.progreso_promedio }}%</p>
+        </div>
+        {% endif %}
+        {% if indicador.porcentaje_mejora is not none %}
+        <div class="bg-white rounded-lg border shadow-sm px-5 py-3">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Mejoraron</p>
+            <p class="text-xl font-bold text-green-600">{{ indicador.porcentaje_mejora }}%</p>
+        </div>
+        {% endif %}
+        {% if indicador.porcentaje_meta_alcanzada is not none %}
+        <div class="bg-white rounded-lg border shadow-sm px-5 py-3">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Meta Alcanzada</p>
+            <p class="text-xl font-bold text-indigo-600">{{ indicador.porcentaje_meta_alcanzada }}%</p>
+        </div>
+        {% endif %}
+        {% if indicador.porcentaje_retroceso is not none %}
+        <div class="bg-white rounded-lg border shadow-sm px-5 py-3">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Retroceso</p>
+            <p class="text-xl font-bold text-red-600">{{ indicador.porcentaje_retroceso }}%</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Header Card -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
         <div class="flex flex-col lg:flex-row">
             <div class="lg:w-1/3 h-64 lg:h-auto bg-gradient-to-br from-indigo-600 to-purple-700 relative">
-                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80" 
+                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80"
                      alt="Acción" class="w-full h-full object-cover opacity-40">
                 <div class="absolute bottom-4 left-4">
                     <span class="bg-white/90 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">ID: {{ accion.codigo_interno or 'N/A' }}</span>
@@ -24,23 +58,16 @@
             <div class="lg:w-2/3 p-8">
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ accion.nombre }}</h1>
                 <p class="text-lg text-gray-500 font-normal mb-3">{{ accion.curso_objetivo or 'Todos los niveles' }}</p>
-                
                 <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-4
                     {% if accion.estado == 'En Ejecución' %}bg-cyan-100 text-cyan-700
                     {% elif accion.estado == 'Planificada' %}bg-blue-100 text-blue-700
                     {% else %}bg-gray-100 text-gray-700{% endif %}">
                     <i class="fas fa-check-circle"></i> {{ accion.estado }}
                 </span>
-
-                <!-- NUEVO: Descripción del taller -->
                 {% if accion.descripcion %}
-                <p class="text-sm text-gray-600 leading-relaxed mb-6 border-l-4 border-indigo-100 pl-4">
-                    {{ accion.descripcion }}
-                </p>
+                <p class="text-sm text-gray-600 leading-relaxed mb-6 border-l-4 border-indigo-100 pl-4">{{ accion.descripcion }}</p>
                 {% endif %}
-
                 {% set pje = (accion.presupuesto_ejecutado / accion.presupuesto_asignado * 100)|round(1) if accion.presupuesto_asignado > 0 else 0 %}
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presupuesto Asignado</p>
@@ -50,45 +77,33 @@
                         </div>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presupuesto Ejecutado (Gastado)</p>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presupuesto Ejecutado</p>
                         <div class="flex items-center gap-2">
                             <i class="fas fa-receipt {% if pje > 100 %}text-red-600{% else %}text-green-600{% endif %}"></i>
                             <span class="text-xl font-bold {% if pje > 100 %}text-red-600{% else %}text-gray-900{% endif %}">
                                 ${{ "{:,.0f}".format(accion.presupuesto_ejecutado) }}
                             </span>
                         </div>
-                        <!-- Barra de ejecución presupuestaria -->
-                        <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden relative">
-                            <div class="h-full {% if pje > 100 %}bg-red-500{% elif pje > 85 %}bg-yellow-500{% else %}bg-green-500{% endif %} rounded-full" 
+                        <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full {% if pje > 100 %}bg-red-500{% elif pje > 85 %}bg-yellow-500{% else %}bg-green-500{% endif %} rounded-full"
                                  style="width: {{ [pje, 100]|min }}%"></div>
                         </div>
                         <p class="text-xs mt-1 {% if pje > 100 %}text-red-600 font-semibold{% else %}text-gray-500{% endif %}">
-                            {% if pje > 100 %}
-                                <i class="fas fa-exclamation-triangle"></i> Sobregiro: {{ pje }}% del presupuesto ejecutado
-                            {% else %}
-                                {{ pje }}% ejecutado
-                            {% endif %}
+                            {% if pje > 100 %}<i class="fas fa-exclamation-triangle"></i> Sobregiro: {{ pje }}%{% else %}{{ pje }}% ejecutado{% endif %}
                         </p>
                     </div>
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Responsable</p>
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <span class="text-gray-900 font-medium">{{ accion.responsable or 'No asignado' }}</span>
-                        </div>
+                        <span class="text-gray-900 font-medium">{{ accion.responsable or 'No asignado' }}</span>
                     </div>
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fecha Inicio - Fin</p>
                         <span class="text-gray-900 font-medium">
-                            {{ accion.fecha_inicio.strftime('%m/%Y') if accion.fecha_inicio else 'N/A' }} - 
+                            {{ accion.fecha_inicio.strftime('%m/%Y') if accion.fecha_inicio else 'N/A' }} -
                             {{ accion.fecha_fin.strftime('%m/%Y') if accion.fecha_fin else 'N/A' }}
                         </span>
                     </div>
                 </div>
-
-                <!-- NUEVO: Justificación de la inversión -->
                 {% if accion.meta_cualitativa %}
                 <div class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
                     <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">
@@ -103,21 +118,19 @@
 
     <!-- Analytics Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Analítica de Impacto (Pearson) -->
+        <!-- Pearson -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
             <div class="flex items-center gap-2 mb-6">
                 <i class="fas fa-chart-line text-indigo-600"></i>
                 <h3 class="text-lg font-semibold text-gray-900">Analítica de Impacto</h3>
             </div>
-
             <div class="flex flex-col items-center mb-6">
                 <div class="relative w-32 h-32">
                     <svg class="w-32 h-32 transform -rotate-90">
                         <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none"/>
-                        <!-- Círculo dinámico basado en Pearson -->
                         <circle cx="64" cy="64" r="56" stroke="#3b82f6" stroke-width="8" fill="none"
-                                stroke-dasharray="351.86" 
-                                stroke-dashoffset="{{ 351.86 - (351.86 * (indicador.correlacion_pearson or 0)) }}" 
+                                stroke-dasharray="351.86"
+                                stroke-dashoffset="{{ 351.86 - (351.86 * ((indicador.correlacion_pearson if indicador and indicador.correlacion_pearson is not none else 0)|abs)) }}"
                                 stroke-linecap="round"/>
                     </svg>
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -126,28 +139,30 @@
                     </div>
                 </div>
             </div>
-
             <p class="text-center text-sm text-gray-600 leading-relaxed mb-4">
                 {% if indicador and indicador.correlacion_pearson is not none %}
                     {% set r = indicador.correlacion_pearson %}
-                    {% if r > 0.7 %}
-                        Existe una correlación <span class="text-cyan-600 font-semibold">fuerte positiva</span>: a mayor asistencia al taller, mayores resultados.
-                    {% elif r > 0.3 %}
-                        Existe una correlación <span class="text-yellow-600 font-semibold">moderada positiva</span> entre la asistencia y los resultados.
-                    {% elif r < -0.7 %}
-                        Existe una correlación <span class="text-red-600 font-semibold">fuerte negativa</span>: a más horas al taller, peores resultados. Revisar metodología.
-                    {% elif r < -0.3 %}
-                        Existe una correlación <span class="text-red-600 font-semibold">negativa moderada</span>: los alumnos con más asistencia mejoraron menos. El taller no está siendo eficaz.
+                    {% if es_nuevo %}
+                        {% if r > 0.7 %}Se observa una asociación <span class="text-cyan-600 font-semibold">positiva fuerte</span> entre la participación y el progreso.
+                        {% elif r > 0.3 %}Se observa una asociación <span class="text-yellow-600 font-semibold">positiva moderada</span> entre la participación y el progreso.
+                        {% elif r < -0.7 %}Se observa una asociación <span class="text-red-600 font-semibold">negativa fuerte</span>: a más horas, menor progreso. Revisar metodología.
+                        {% elif r < -0.3 %}Se observa una asociación <span class="text-red-600 font-semibold">negativa moderada</span>: los alumnos con más participación progresaron menos.
+                        {% else %}Se observa una asociación <span class="text-gray-500 font-semibold">débil o nula</span> entre la participación y el progreso.
+                        {% endif %}
                     {% else %}
-                        Existe una correlación <span class="text-gray-500 font-semibold">débil o nula</span> entre la asistencia y los resultados.
+                        {% if r > 0.7 %}Existe una correlación <span class="text-cyan-600 font-semibold">fuerte positiva</span>: a mayor asistencia al taller, mayores resultados.
+                        {% elif r > 0.3 %}Existe una correlación <span class="text-yellow-600 font-semibold">moderada positiva</span> entre la asistencia y los resultados.
+                        {% elif r < -0.7 %}Existe una correlación <span class="text-red-600 font-semibold">fuerte negativa</span>: a más horas, peores resultados. Revisar metodología.
+                        {% elif r < -0.3 %}Existe una correlación <span class="text-red-600 font-semibold">negativa moderada</span>: los alumnos con más asistencia mejoraron menos.
+                        {% else %}Existe una correlación <span class="text-gray-500 font-semibold">débil o nula</span> entre la asistencia y los resultados.
+                        {% endif %}
                     {% endif %}
-                {% else %}
-                    Aún no hay datos suficientes para calcular la correlación.
+                {% else %}Aún no hay datos suficientes para calcular la correlación.
                 {% endif %}
             </p>
         </div>
 
-        <!-- Comparativa Rendimiento (Chart.js) -->
+        <!-- Proyección -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-2">
@@ -155,23 +170,56 @@
                     <h3 class="text-lg font-semibold text-gray-900">Proyección de Cumplimiento</h3>
                 </div>
                 <div class="flex items-center gap-4 text-xs">
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 bg-indigo-600 rounded-sm"></span> Meta
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 bg-gray-300 rounded-sm"></span> Proyección Actual
-                    </span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-indigo-600 rounded-sm"></span> Meta</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-gray-300 rounded-sm"></span> Proyección</span>
                 </div>
             </div>
-
-            <div class="h-64 pb-6">
-                <canvas id="comparativaChart"></canvas>
-            </div>
+            <div class="h-64 pb-6"><canvas id="comparativaChart"></canvas></div>
         </div>
     </div>
 
+    <!-- Indicadores Definidos (solo modelo nuevo) -->
+    {% if es_nuevo %}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-8">
+        <div class="flex items-center gap-2 mb-6">
+            <i class="fas fa-list-check text-indigo-600"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Indicadores Definidos</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 text-left text-gray-500 bg-gray-50">
+                        <th class="p-3 font-medium">Nombre</th>
+                        <th class="p-3 font-medium">Tipo</th>
+                        <th class="p-3 font-medium">Unidad</th>
+                        <th class="p-3 font-medium">Dirección</th>
+                        <th class="p-3 font-medium">Línea Base</th>
+                        <th class="p-3 font-medium">Meta</th>
+                        <th class="p-3 font-medium">Peso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for def in definiciones %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 font-medium text-gray-900">{{ def.nombre }}</td>
+                        <td class="p-3 text-gray-600">{{ def.tipo }}</td>
+                        <td class="p-3 text-gray-600">{{ def.unidad_medida or 'N/A' }}</td>
+                        <td class="p-3">
+                            {% if def.direccion == 'MAYOR_ES_MEJOR' %}<span class="text-green-600">↑ Mayor es mejor</span>
+                            {% else %}<span class="text-blue-600">↓ Menor es mejor</span>{% endif %}
+                        </td>
+                        <td class="p-3 font-semibold">{{ def.linea_base or 'N/A' }}</td>
+                        <td class="p-3 font-semibold">{{ def.meta or 'N/A' }}</td>
+                        <td class="p-3 text-gray-600">{{ def.peso }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
-        <!-- Impacto Individual por Alumno (NUEVO) -->
+    <!-- Impacto Individual -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mt-8">
         <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
@@ -181,72 +229,101 @@
             <span class="text-xs text-gray-400">Ordenados por horas de participación</span>
         </div>
         <p class="text-xs text-gray-500 mb-6">
-            Compare las <strong>horas de taller</strong> con la <strong>mejora de notas</strong>. 
-            En el gráfico de dispersión: si los puntos suben hacia la derecha, la correlación es positiva.
+            {% if es_nuevo %}Compare las <strong>horas de participación</strong> con el <strong>progreso hacia la meta</strong>.
+            {% else %}Compare las <strong>horas de taller</strong> con la <strong>mejora de notas</strong>.{% endif %}
         </p>
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Gráfico de Dispersión: Horas vs Mejora -->
+            <!-- Scatter -->
             <div class="lg:col-span-1">
                 <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                    {% if es_nuevo and definiciones|length > 1 %}
+                    <select id="scatter-ind-select" onchange="actualizarScatter()" class="w-full mb-2 px-2 py-1.5 border border-gray-300 rounded text-xs bg-white">
+                        {% for def in definiciones %}<option value="{{ def.id }}">{{ def.nombre }}</option>{% endfor %}
+                    </select>
+                    {% endif %}
                     <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 text-center">
-                        Horas vs Mejora (r = {{ indicador.correlacion_pearson if indicador and indicador.correlacion_pearson is not none else 'N/A' }})
+                        Horas vs {{ 'Progreso' if es_nuevo else 'Mejora' }} (r = {{ indicador.correlacion_pearson if indicador and indicador.correlacion_pearson is not none else 'N/A' }})
                     </p>
-                    <div class="h-64">
-                        <canvas id="scatterImpacto"></canvas>
-                    </div>
+                    <div class="h-64"><canvas id="scatterImpacto"></canvas></div>
                 </div>
             </div>
-
-            <!-- Tabla de detalle por alumno -->
+            <!-- Tabla -->
             <div class="lg:col-span-2 overflow-x-auto">
+                {% if es_nuevo %}
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200 text-left text-gray-500 bg-gray-50">
                             <th class="p-3 font-medium">Alumno</th>
                             <th class="p-3 font-medium">Horas</th>
-                            <th class="p-3 font-medium">Nota Inicial</th>
-                            <th class="p-3 font-medium">Nota Actual</th>
-                            <th class="p-3 font-medium">Mejora</th>
-                            <th class="p-3 font-medium">Asistencia</th>
+                            <th class="p-3 font-medium">Indicador</th>
+                            <th class="p-3 font-medium">Base → Actual</th>
+                            <th class="p-3 font-medium">Progreso</th>
+                            <th class="p-3 font-medium">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alumno in alumnos %}
+                        {% for ind in alumno.indicadores %}
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                            <td class="p-3"><p class="font-medium text-gray-900">{{ alumno.nombre }}</p><p class="text-xs text-gray-400">{{ alumno.curso }}</p></td>
+                            <td class="p-3 font-semibold">{{ alumno.horas }}</td>
+                            <td class="p-3 text-gray-700">{{ ind.indicador_nombre }}</td>
+                            <td class="p-3 text-gray-600">{{ ind.linea_base }} → {{ ind.valor_actual }} {{ ind.unidad }}</td>
+                            <td class="p-3 font-semibold {% if ind.progreso is none %}text-gray-400{% elif ind.progreso >= 100 %}text-green-600{% elif ind.progreso > 0 %}text-cyan-600{% elif ind.progreso == 0 %}text-gray-500{% else %}text-red-600{% endif %}">
+                                {% if ind.progreso is none %}N/A{% else %}{{ ind.progreso }}%{% endif %}
+                            </td>
+                            <td class="p-3">
+                                <span class="px-2 py-1 text-xs rounded-full font-medium
+                                    {% if ind.estado == 'META_ALCANZADA' %}bg-green-100 text-green-700
+                                    {% elif ind.estado == 'EN_PROGRESO' %}bg-cyan-100 text-cyan-700
+                                    {% elif ind.estado == 'MEJORA_LEVE' %}bg-blue-100 text-blue-700
+                                    {% elif ind.estado == 'RETROCESO' %}bg-red-100 text-red-700
+                                    {% elif ind.estado == 'SIN_BRECHA' %}bg-yellow-100 text-yellow-700
+                                    {% else %}bg-gray-100 text-gray-600{% endif %}">{{ ind.estado }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not alumno.indicadores %}
+                        <tr class="border-b border-gray-100">
+                            <td class="p-3 font-medium text-gray-900">{{ alumno.nombre }}</td>
+                            <td class="p-3 font-semibold">{{ alumno.horas }}</td>
+                            <td colspan="4" class="p-3 text-gray-400 italic">Sin mediciones registradas</td>
+                        </tr>
+                        {% endif %}
+                        {% else %}
+                        <tr><td colspan="6" class="p-6 text-center text-gray-400">Aún no hay alumnos registrados (use F-4).</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200 text-left text-gray-500 bg-gray-50">
+                            <th class="p-3 font-medium">Alumno</th><th class="p-3 font-medium">Horas</th>
+                            <th class="p-3 font-medium">Nota Inicial</th><th class="p-3 font-medium">Nota Actual</th>
+                            <th class="p-3 font-medium">Mejora</th><th class="p-3 font-medium">Asistencia</th>
                             <th class="p-3 font-medium">Clasificación</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for alumno in alumnos %}
                         <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                            <td class="p-3">
-                                <p class="font-medium text-gray-900">{{ alumno.nombre }}</p>
-                                <p class="text-xs text-gray-400">{{ alumno.curso }}</p>
-                            </td>
-                            <td class="p-3 text-gray-900 font-semibold">{{ alumno.horas }}</td>
+                            <td class="p-3"><p class="font-medium text-gray-900">{{ alumno.nombre }}</p><p class="text-xs text-gray-400">{{ alumno.curso }}</p></td>
+                            <td class="p-3 font-semibold">{{ alumno.horas }}</td>
                             <td class="p-3 text-gray-600">{{ alumno.nota_inicial if alumno.nota_inicial is not none else 'N/A' }}</td>
                             <td class="p-3 text-gray-600">{{ alumno.nota_actual if alumno.nota_actual is not none else 'N/A' }}</td>
-                            <td class="p-3 font-semibold 
-                                {% if alumno.delta is none %}text-gray-400
-                                {% elif alumno.delta > 0 %}text-green-600
-                                {% elif alumno.delta < 0 %}text-red-600
-                                {% else %}text-gray-500{% endif %}">
-                                {% if alumno.delta is none %}N/A
-                                {% elif alumno.delta > 0 %}+{{ alumno.delta }}
-                                {% else %}{{ alumno.delta }}{% endif %}
+                            <td class="p-3 font-semibold {% if alumno.delta is none %}text-gray-400{% elif alumno.delta > 0 %}text-green-600{% elif alumno.delta < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+                                {% if alumno.delta is none %}N/A{% elif alumno.delta > 0 %}+{{ alumno.delta }}{% else %}{{ alumno.delta }}{% endif %}
                             </td>
                             <td class="p-3 text-gray-600">{{ alumno.asistencia_actual if alumno.asistencia_actual is not none else 'N/A' }}%</td>
-                            <td class="p-3">
-                                <span class="px-2 py-1 text-xs rounded-full font-medium {{ alumno.clase }}">
-                                    {{ alumno.clasificacion }}
-                                </span>
-                            </td>
+                            <td class="p-3"><span class="px-2 py-1 text-xs rounded-full font-medium {{ alumno.clase }}">{{ alumno.clasificacion }}</span></td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="p-6 text-center text-gray-400">
-                                Aún no hay alumnos registrados en esta acción (use el formulario F-4).
-                            </td>
-                        </tr>
+                        <tr><td colspan="7" class="p-6 text-center text-gray-400">Aún no hay alumnos registrados (use F-4).</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -272,120 +349,142 @@
             </div>
             <div class="p-4 border border-gray-200 rounded-lg">
                 <p class="text-xs text-gray-500 mb-1">Semáforo</p>
-                <p class="text-lg font-bold 
-                    {% if not indicador %}text-gray-900
-                    {% elif indicador.estado_semaforo == 'Verde' %}text-green-600
-                    {% elif indicador.estado_semaforo == 'Amarillo' %}text-yellow-600
-                    {% else %}text-red-600{% endif %}">
+                <p class="text-lg font-bold {% if not indicador %}text-gray-900{% elif indicador.estado_semaforo == 'Verde' %}text-green-600{% elif indicador.estado_semaforo == 'Amarillo' %}text-yellow-600{% else %}text-red-600{% endif %}">
                     {{ indicador.estado_semaforo if indicador else 'Sin Datos' }}
                 </p>
             </div>
         </div>
+        {% if es_nuevo and indicador %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
+            {% if indicador.ipa is not none %}
+            <div class="p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+                <p class="text-xs text-indigo-600 mb-1">IPA</p>
+                <p class="text-lg font-bold text-indigo-700">{{ indicador.ipa }}%</p>
+            </div>
+            {% endif %}
+            {% if indicador.progreso_promedio is not none %}
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">Progreso Prom.</p>
+                <p class="text-lg font-bold">{{ indicador.progreso_promedio }}%</p>
+            </div>
+            {% endif %}
+            {% if indicador.porcentaje_mejora is not none %}
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">% Mejora</p>
+                <p class="text-lg font-bold text-green-600">{{ indicador.porcentaje_mejora }}%</p>
+            </div>
+            {% endif %}
+            {% if indicador.porcentaje_meta_alcanzada is not none %}
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">% Meta Alcanzada</p>
+                <p class="text-lg font-bold text-indigo-600">{{ indicador.porcentaje_meta_alcanzada }}%</p>
+            </div>
+            {% endif %}
+            {% if indicador.porcentaje_retroceso is not none %}
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <p class="text-xs text-gray-500 mb-1">% Retroceso</p>
+                <p class="text-lg font-bold text-red-600">{{ indicador.porcentaje_retroceso }}%</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Script para Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('comparativaChart').getContext('2d');
-        
-        // Obtenemos los valores desde Flask a JS
-        const metaValor = {{ accion.meta_valor or 0 }};
-        // Si hay proyección de cumplimiento (0.0 a 1.0+), lo multiplicamos por la meta para ver el valor proyectado
-        const proyPorcentaje = {{ indicador.proyeccion_cumplimiento if indicador and indicador.proyeccion_cumplimiento else 0 }};
-        const proyValor = metaValor * proyPorcentaje;
+document.addEventListener("DOMContentLoaded", function() {
+    var esNuevo = {{ 'true' if es_nuevo else 'false' }};
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Objetivo Final'],
-                datasets: [{
-                    label: 'Meta Valor',
-                    data: [metaValor],
-                    backgroundColor: '#6366f1',
-                    borderColor: '#4f46e5',
-                    borderWidth: 1
-                }, {
-                    label: 'Proyección Actual',
-                    data: [proyValor],
-                    backgroundColor: '#e5e7eb',
-                    borderColor: '#d1d5db',
-                    borderWidth: 1
-                }]
-            },
+    // === Proyección Chart ===
+    var ctx = document.getElementById('comparativaChart').getContext('2d');
+    var metaValor = {{ accion.meta_valor or 0 }};
+    var proyPct = {{ indicador.proyeccion_cumplimiento if indicador and indicador.proyeccion_cumplimiento else 0 }};
+    var chartMeta, chartProy;
+    if (esNuevo) { chartMeta = 100; chartProy = Math.round(proyPct * 1000) / 10; }
+    else { chartMeta = metaValor; chartProy = Math.round(metaValor * proyPct * 10) / 10; }
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Objetivo Final'],
+            datasets: [
+                { label: 'Meta', data: [chartMeta], backgroundColor: '#6366f1', borderColor: '#4f46e5', borderWidth: 1 },
+                { label: 'Proyección', data: [chartProy], backgroundColor: '#e5e7eb', borderColor: '#d1d5db', borderWidth: 1 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, suggestedMax: chartMeta * 1.2 } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // === Scatter Plot ===
+    var scatterCtx = document.getElementById('scatterImpacto');
+    if (scatterCtx) {
+        {% if es_nuevo %}
+        var scatterPorIndicador = {};
+        {% for alumno in alumnos %}
+        {% for ind in alumno.indicadores %}
+        if (!scatterPorIndicador[{{ ind.indicador_id }}]) {
+            scatterPorIndicador[{{ ind.indicador_id }}] = { nombre: {{ ind.indicador_nombre|tojson }}, datos: [] };
+        }
+        scatterPorIndicador[{{ ind.indicador_id }}].datos.push({
+            x: {{ alumno.horas }}, y: {{ ind.progreso if ind.progreso is not none else 0 }},
+            nombre: {{ alumno.nombre|tojson }}
+        });
+        {% endfor %}
+        {% endfor %}
+
+        function getScatterData() {
+            var sel = document.getElementById('scatter-ind-select');
+            var indId = sel ? sel.value : Object.keys(scatterPorIndicador)[0];
+            return scatterPorIndicador[indId] || { nombre: '', datos: [] };
+        }
+        var init = getScatterData();
+        window.scatterChart = new Chart(scatterCtx, {
+            type: 'scatter',
+            data: { datasets: [{ label: 'Alumnos', data: init.datos, backgroundColor: '#4f46e5', pointRadius: 7, pointHoverRadius: 10 }] },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        suggestedMax: metaValor * 1.2
-                    }
+                    x: { title: { display: true, text: 'Horas de Participación' }, beginAtZero: true },
+                    y: { title: { display: true, text: 'Progreso (%)' } }
                 },
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(c) { return c.raw.nombre + ': ' + c.raw.x + ' hrs → ' + c.raw.y + '%'; } } }
                 }
             }
         });
-
-                // ===== NUEVO: Gráfico de Dispersión Horas vs Mejora =====
-        const scatterCtx = document.getElementById('scatterImpacto');
-        if (scatterCtx) {
-            // Pasamos los datos desde Flask a JavaScript
-            const alumnosData = [
-                {% for alumno in alumnos %}
-                {
-                    x: {{ alumno.horas }},
-                    y: {{ alumno.delta if alumno.delta is not none else 0 }},
-                    nombre: {{ alumno.nombre|tojson }},
-                    horas: {{ alumno.horas }},
-                    delta: {{ alumno.delta if alumno.delta is not none else 'null' }}
+        window.actualizarScatter = function() {
+            var d = getScatterData();
+            if (window.scatterChart) { window.scatterChart.data.datasets[0].data = d.datos; window.scatterChart.update(); }
+        };
+        {% else %}
+        var alumnosData = [
+            {% for alumno in alumnos %}
+            { x: {{ alumno.horas }}, y: {{ alumno.delta if alumno.delta is not none else 0 }}, nombre: {{ alumno.nombre|tojson }}, delta: {{ alumno.delta if alumno.delta is not none else 'null' }} }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        new Chart(scatterCtx, {
+            type: 'scatter',
+            data: { datasets: [{ label: 'Alumnos', data: alumnosData, backgroundColor: '#4f46e5', pointRadius: 7, pointHoverRadius: 10 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Horas de Taller' }, beginAtZero: true },
+                    y: { title: { display: true, text: 'Mejora de Nota (Delta)' } }
                 },
-                {% endfor %}
-            ];
-
-            new Chart(scatterCtx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Alumnos',
-                        data: alumnosData,
-                        backgroundColor: '#4f46e5',
-                        pointRadius: 7,
-                        pointHoverRadius: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Horas de Taller' },
-                            beginAtZero: true
-                        },
-                        y: {
-                            title: { display: true, text: 'Mejora de Nota (Delta)' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const d = context.raw;
-                                    const deltaTxt = d.delta === null ? 'N/A' : (d.delta > 0 ? '+' + d.delta : d.delta);
-                                    return `${d.nombre}: ${d.horas} hrs → Mejora ${deltaTxt}`;
-                                }
-                            }
-                        }
-                    }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(c) { var d = c.raw; var t = d.delta === null ? 'N/A' : (d.delta > 0 ? '+' + d.delta : d.delta); return d.nombre + ': ' + d.x + ' hrs → ' + t; } } }
                 }
-            });
-        }
-
-    });
+            }
+        });
+        {% endif %}
+    }
+});
 </script>
 {% endblock %}

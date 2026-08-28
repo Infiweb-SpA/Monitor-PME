@@ -467,3 +467,82 @@ def obtener_impacto_individual(accion_id):
 
     resultado.sort(key=lambda x: x["horas"], reverse=True)
     return resultado
+
+def obtener_impacto_individual_nuevo(accion_id):
+    """Impacto individual para acciones con modelo nuevo (DefinicionIndicador).
+
+    Para cada alumno devuelve horas acumuladas y progreso por cada indicador
+    definido en la acción, más un progreso promedio y estado grupal.
+    """
+    accion = AccionPME.query.get(accion_id)
+    if not accion:
+        return []
+
+    definiciones = DefinicionIndicador.query.filter_by(
+        accion_id=accion_id, activo=True
+    ).all()
+    if not definiciones:
+        return []
+
+    horas_por_est = _horas_por_estudiante(accion_id)
+    resultado = []
+
+    for est_id, horas in horas_por_est.items():
+        estudiante = Estudiante.query.get(est_id)
+        if not estudiante:
+            continue
+
+        indicadores_data = []
+        for def_ind in definiciones:
+            med = MedicionIndicador.query.filter_by(
+                indicador_def_id=def_ind.id, estudiante_id=est_id
+            ).order_by(MedicionIndicador.periodo.desc()).first()
+
+            if med:
+                res = calcular_progreso_indicador(
+                    def_ind.linea_base, med.valor, def_ind.meta, def_ind.direccion
+                )
+                indicadores_data.append({
+                    "indicador_id": def_ind.id,
+                    "indicador_nombre": def_ind.nombre,
+                    "unidad": def_ind.unidad_medida or "",
+                    "direccion": def_ind.direccion,
+                    "linea_base": def_ind.linea_base,
+                    "meta": def_ind.meta,
+                    "valor_actual": med.valor,
+                    "periodo": med.periodo,
+                    "delta": res["delta"],
+                    "progreso": res["progreso_meta"],
+                    "cumplimiento": res["cumplimiento"],
+                    "estado": res["estado"],
+                })
+
+        progresos = [i["progreso"] for i in indicadores_data if i["progreso"] is not None]
+        prog_promedio = round(float(np.mean(progresos)), 2) if progresos else None
+
+        if not indicadores_data:
+            estado_grupal = "SIN_DATOS"
+        elif prog_promedio is not None:
+            if prog_promedio >= 100:
+                estado_grupal = "META_ALCANZADA"
+            elif prog_promedio > 0:
+                estado_grupal = "EN_PROGRESO"
+            elif prog_promedio == 0:
+                estado_grupal = "ESTABLE"
+            else:
+                estado_grupal = "RETROCESO"
+        else:
+            estado_grupal = "SIN_DATOS"
+
+        resultado.append({
+            "id": estudiante.id,
+            "nombre": estudiante.nombre_completo,
+            "curso": estudiante.curso.nombre if estudiante.curso else "N/A",
+            "horas": horas,
+            "indicadores": indicadores_data,
+            "progreso_promedio": prog_promedio,
+            "estado_grupal": estado_grupal,
+        })
+
+    resultado.sort(key=lambda x: x["horas"], reverse=True)
+    return resultado
