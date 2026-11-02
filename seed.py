@@ -242,19 +242,23 @@ def crear_registros_app_ponderado(estudiantes):
                 nota = min(7.0, max(1.0, nota_base + mejora + random.gauss(0, 0.3)))
                 asist = min(100.0, max(50.0, asist_base + random.gauss(0, 3)))
 
+                # Grupo de comparacion: mayoria Intervenido, ~20% Control
+                grupo = "Control" if random.random() < 0.2 else "Intervenido"
+
                 reg = RegistroAppPonderado(
                     estudiante_id=estudiante.id,
                     periodo=periodo,
                     asignatura=asig,
                     promedio_notas=round(nota, 2),
                     porcentaje_asistencia=round(asist, 1),
+                    grupo=grupo,
                     bitacora=fake.sentence(nb_words=10) if random.random() > 0.7 else None,
                 )
                 db.session.add(reg)
                 registros_totales += 1
 
     db.session.commit()
-    print(f"  → {registros_totales} registros App Ponderado creados.")
+    print(f"  -> {registros_totales} registros App Ponderado creados.")
 
 
 def crear_participaciones(estudiantes, acciones):
@@ -358,6 +362,7 @@ def main():
         print("  SEED EDUGEST PME - Población de Datos Pseudo-Reales")
         print("=" * 60)
 
+        db.drop_all()
         db.create_all()
 
         print("\n[1/8] Creando establecimiento...")
@@ -388,13 +393,13 @@ def main():
         crear_indicadores(accs)
 
         print("\n" + "=" * 60)
-        print("  ✅ Base de datos poblada exitosamente.")
-        print(f"  • Establecimiento: {est.nombre} (RBD: {est.rbd})")
-        print(f"  • Usuarios: 1 (admin@liceo.cl / admin123)")
-        print(f"  • Cursos: {len(cursos)}")
-        print(f"  • Estudiantes: {len(ests)}")
-        print(f"  • Acciones PME: {len(accs)}")
-        print(f"  • Indicadores calculados por mes para cada acción.")
+        print("  OK Base de datos poblada exitosamente.")
+        print(f"  - Establecimiento: {est.nombre} (RBD: {est.rbd})")
+        print(f"  - Usuarios: 1 (admin@liceo.cl / admin123)")
+        print(f"  - Cursos: {len(cursos)}")
+        print(f"  - Estudiantes: {len(ests)}")
+        print(f"  - Acciones PME: {len(accs)}")
+        print(f"  - Indicadores calculados por mes para cada acción.")
         print("=" * 60)
 
 

@@ -60,6 +60,9 @@ class RegistroAppPonderado(db.Model):
     promedio_notas = db.Column(db.Float, nullable=False)
     porcentaje_asistencia = db.Column(db.Float, nullable=False)
 
+    # Grupo de comparacion para medir impacto real: Intervenido o Control
+    grupo = db.Column(db.String(20), nullable=False, default="Intervenido")
+
     # Bitácora de ejecución física de la acción PME
     bitacora = db.Column(db.Text, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
@@ -143,6 +146,10 @@ class DefinicionIndicador(db.Model):
     # Tipo: NOTA, ASISTENCIA, HABILIDAD, COMPETENCIA, INDICADOR_PEDAGOGICO,
     #       RUBRICA, OTRO_CUANTITATIVO
     tipo = db.Column(db.String(50), nullable=False, default="OTRO_CUANTITATIVO")
+
+    # Asignatura asociada (opcional): vincula la competencia a una asignatura
+    # para comparar con las notas de esa asignatura. Si es None, es transversal.
+    asignatura = db.Column(db.String(50), nullable=True)
 
     unidad_medida = db.Column(db.String(80), nullable=True)
 

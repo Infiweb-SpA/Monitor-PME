@@ -322,6 +322,37 @@ def _procesar_nuevo_modelo(accion, definiciones, periodo):
                 "x_horas": x_horas, "promedio": float(np.mean(progresos))
             })
 
+    # Incorporar notas/asistencia como indicador automatico (modelo unificado)
+    if accion.indicador_tipo and accion.linea_base_valor is not None and accion.meta_valor is not None:
+        progresos, deltas, x_horas = [], [], []
+        for est_id in est_ids:
+            if accion.indicador_tipo == "Promedio Notas":
+                actual = _nota_promedio(est_id, periodo)
+            else:
+                actual = _asistencia_promedio(est_id, periodo)
+            if actual is None:
+                continue
+            res = calcular_progreso_indicador(
+                accion.linea_base_valor, actual, accion.meta_valor, "MAYOR_ES_MEJOR"
+            )
+            if res["progreso_meta"] is not None:
+                progresos.append(res["progreso_meta"])
+                deltas.append(res["delta"])
+                x_horas.append(horas_por_est[est_id])
+        if progresos:
+            from types import SimpleNamespace
+            syn_def = SimpleNamespace(
+                nombre=accion.indicador_tipo,
+                peso=1.0,
+                linea_base=accion.linea_base_valor,
+                meta=accion.meta_valor,
+                direccion="MAYOR_ES_MEJOR",
+            )
+            resultados.append({
+                "def": syn_def, "progresos": progresos, "deltas": deltas,
+                "x_horas": x_horas, "promedio": float(np.mean(progresos))
+            })
+
     if not resultados:
         return None
 

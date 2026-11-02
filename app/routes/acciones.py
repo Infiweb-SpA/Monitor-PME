@@ -82,15 +82,41 @@ def nueva_accion():
             unidad_medida=request.form.get("unidad_medida"),
             linea_base_valor=float(request.form.get("linea_base_valor")) if request.form.get("linea_base_valor") else None,
             meta_valor=float(request.form.get("meta_valor")) if request.form.get("meta_valor") else None,
-            curso_objetivo=request.form.get("curso_objetivo")
+            curso_objetivo=request.form.get("curso_objetivo"),
+            curso_control=request.form.get("curso_control")
         )
         db.session.add(nueva)
         db.session.commit()
+
+        # Convertir campos basicos en un indicador automatico (modelo unificado)
+        tipo_basico = request.form.get("indicador_tipo")
+        linea_base_basica = request.form.get("linea_base_valor")
+        meta_basica = request.form.get("meta_valor")
+        if tipo_basico and linea_base_basica and meta_basica:
+            try:
+                tipo_ind = "NOTA" if tipo_basico == "Promedio Notas" else "ASISTENCIA"
+                def_basica = DefinicionIndicador(
+                    accion_id=nueva.id,
+                    nombre=tipo_basico,
+                    descripcion="Indicador basico generado automaticamente desde F-1",
+                    tipo=tipo_ind,
+                    unidad_medida=request.form.get("unidad_medida", ""),
+                    direccion="MAYOR_ES_MEJOR",
+                    linea_base=float(linea_base_basica),
+                    meta=float(meta_basica),
+                    peso=1.0,
+                )
+                db.session.add(def_basica)
+                db.session.commit()
+            except (ValueError, TypeError):
+                pass
+
 
         # Procesar indicadores de evaluación (modelo nuevo)
         nombres_ind = request.form.getlist('ind_nombre[]')
         tipos_ind = request.form.getlist('ind_tipo[]')
         unidades_ind = request.form.getlist('ind_unidad[]')
+        asignaturas_ind = request.form.getlist('ind_asignatura[]')
         direcciones_ind = request.form.getlist('ind_direccion[]')
         bases_ind = request.form.getlist('ind_linea_base[]')
         metas_ind = request.form.getlist('ind_meta[]')
@@ -111,6 +137,7 @@ def nueva_accion():
                     descripcion=descs_ind[i].strip() if i < len(descs_ind) else '',
                     tipo=tipos_ind[i] if i < len(tipos_ind) else 'OTRO_CUANTITATIVO',
                     unidad_medida=unidades_ind[i].strip() if i < len(unidades_ind) else '',
+                    asignatura=asignaturas_ind[i].strip() if i < len(asignaturas_ind) and asignaturas_ind[i].strip() else None,
                     direccion=direcciones_ind[i] if i < len(direcciones_ind) else 'MAYOR_ES_MEJOR',
                     linea_base=float(bases_ind[i]) if i < len(bases_ind) and bases_ind[i].strip() else None,
                     meta=float(metas_ind[i]) if i < len(metas_ind) and metas_ind[i].strip() else None,

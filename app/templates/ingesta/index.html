@@ -3,6 +3,7 @@
 {% block title %}Ingesta de Datos - EduGest PME{% endblock %}
 
 {% block content %}
+<script>window.ASIGNATURAS = {{ asignaturas|tojson }};</script>
 <div class="p-8">
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-indigo-700">Ingesta Manual de Datos y Justificación</h1>
@@ -43,6 +44,21 @@
                         <i class="fas fa-cloud-upload-alt"></i> Subir y Previsualizar
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-info-circle text-blue-600 mt-1"></i>
+                <div>
+                    <h3 class="font-bold text-blue-900 mb-1">¿Qué es F-1 y por qué importa?</h3>
+                    <p class="text-sm text-blue-800">
+                        Aquí defines cada acción del PME que quieres medir: qué se hace, cuánto cuesta, a quién va dirigida y qué resultado esperas.
+                        El <strong>curso objetivo</strong> es el grupo intervenido; el <strong>curso de control</strong> (opcional) es un grupo similar que NO recibe la acción,
+                        y sirve para comparar si el cambio realmente se debe a la intervención y no a otros factores.
+                        Sin una meta numérica clara, el motor no puede calcular el semáforo.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -111,8 +127,14 @@
                     <input type="date" name="fecha_fin" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Curso Objetivo</label>
-                    <input type="text" name="curso_objetivo" placeholder="Ej: 8° Básico" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Curso Objetivo (Intervenido)</label>
+                    <input type="text" name="curso_objetivo" placeholder="Ej: 8° Básico A" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Grupo que recibe la acción.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Curso de Control (Comparación)</label>
+                    <input type="text" name="curso_control" placeholder="Ej: 8° Básico B (opcional)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Grupo similar que NO recibe la acción, para medir impacto real.</p>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -164,7 +186,7 @@
                 </div>
                 <div id="indicadores-container"></div>
                 <p id="sin-indicadores" class="text-sm text-gray-400 italic text-center py-4 border border-dashed border-gray-200 rounded-lg">
-                    Sin indicadores definidos. Se usarán los campos de arriba (Indicador a Medir, Línea Base, Meta Valor).
+                    Los campos de arriba (Indicador a Medir, Línea Base, Meta Valor) se convierten automáticamente en un indicador. Agrega más aquí si necesitas medir competencias específicas.
                 </p>
             </div>
 
@@ -176,12 +198,34 @@
 
     <!-- F-2: App Ponderado + Mediciones de Indicadores -->
     <div id="tab2" class="tab-content hidden bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-info-circle text-blue-600 mt-1"></i>
+                <div>
+                    <h3 class="font-bold text-blue-900 mb-1">¿Qué es F-2 y por qué importa?</h3>
+                    <p class="text-sm text-blue-800">
+                        Aquí registras la evidencia de aprendizaje por estudiante: notas, asistencia y a qué grupo pertenece (intervenido o control).
+                        El <strong>grupo</strong> permite comparar si la mejora se debe a la acción o a otros factores.
+                        La bitácora documenta la intervención real (metodología, asistencia a refuerzo, incidencias) para justificar el gasto.
+                    </p>
+                </div>
+            </div>
+        </div>
         <h2 class="text-xl font-bold text-gray-900 mb-6">Carga de Notas y Asistencia (App Ponderado)</h2>
         <form action="{{ url_for('ingesta.cargar_app_ponderado') }}" method="POST" class="space-y-5">
             <div class="grid grid-cols-3 gap-4">
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Acción / Taller (opcional)</label>
+                    <select name="accion_ref" id="f2-accion" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="">Sin acción (asignatura manual)</option>
+                        {% for acc in acciones %}
+                        <option value="{{ acc.id }}">{{ acc.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Estudiante</label>
-                    <select name="estudiante_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                    <select name="estudiante_id" id="f2-estudiante" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
                         <option value="" disabled selected>Seleccione un estudiante...</option>
                         {% for est in estudiantes %}
                         <option value="{{ est.id }}">{{ est.nombre_completo }} - {{ est.curso.nombre }}</option>
@@ -190,26 +234,44 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Periodo</label>
-                    <input type="text" name="periodo" required placeholder="Ej: 2026-03" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <select name="periodo" id="f2-periodo" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="" disabled selected>Seleccione período...</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Asignatura</label>
-                    <input type="text" name="asignatura" required placeholder="Ej: Matemáticas" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <input type="text" name="asignatura" id="f2-asignatura" required placeholder="Ej: Matemáticas" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm" readonly>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Promedio Notas</label>
-                    <input type="number" step="0.1" name="promedio_notas" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <input type="number" step="0.1" name="promedio_notas" id="f2-notas" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <p class="text-xs text-gray-400 mt-1" id="f2-notas-hint"></p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">% Asistencia</label>
-                    <input type="number" step="0.1" name="porcentaje_asistencia" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <input type="number" step="0.1" name="porcentaje_asistencia" id="f2-asist" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <p class="text-xs text-gray-400 mt-1" id="f2-asist-hint"></p>
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Bitácora de Intervención Pedagógica</label>
-                <textarea name="bitacora" rows="3" placeholder="Justifique metodología, asistencia a refuerzo o problemas conductuales..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm"></textarea>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Grupo de Comparación</label>
+                    <select name="grupo" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="Intervenido">Intervenido (recibe la acción)</option>
+                        <option value="Control">Control (no recibe la acción)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Necesario para medir impacto real.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Competencia / Indicador de Logro (opcional)</label>
+                    <input type="text" name="competencia" placeholder="Ej: Resuelve problemas con fracciones" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                </div>
+            </div>
+            <textarea name="bitacora" rows="3" placeholder="Justifique metodología, asistencia a refuerzo o problemas conductuales..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm"></textarea>
             </div>
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 flex items-center gap-2">
                 <i class="fas fa-save"></i> Registrar Intervención
@@ -219,7 +281,7 @@
         <!-- NUEVO: Mediciones de Indicadores (Etapa 13) -->
         <div class="border-t border-gray-200 pt-6 mt-8">
             <h3 class="text-lg font-bold text-gray-900 mb-1">Mediciones de Indicadores</h3>
-            <p class="text-xs text-gray-500 mb-4">Registre valores de indicadores personalizados para un estudiante. Requiere que la acción tenga indicadores definidos en F-1.</p>
+            <p class="text-xs text-gray-500 mb-4">Registre valores de indicadores personalizados para un estudiante. Las notas y asistencia de la sección anterior también alimentan el motor automáticamente. Requiere que la acción tenga indicadores definidos en F-1.</p>
             <form action="{{ url_for('ingesta.cargar_medicion_indicador') }}" method="POST" class="space-y-4">
                 <div class="grid grid-cols-3 gap-4">
                     <div>
@@ -233,17 +295,21 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Periodo</label>
-                        <input type="text" name="periodo" required placeholder="Ej: 2026-08" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <input type="text" name="periodo" id="med-periodo" required placeholder="Ej: 2026-08" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Estudiante</label>
-                        <select name="estudiante_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <select name="estudiante_id" id="med-estudiante" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
                             <option value="" disabled selected>Seleccione estudiante...</option>
                             {% for est in estudiantes %}
                             <option value="{{ est.id }}">{{ est.nombre_completo }} - {{ est.curso.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                </div>
+                <div id="med-notas-ref" class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm text-blue-800 hidden">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <span id="med-notas-text">Notas: — | Asistencia: —</span>
                 </div>
                 <div id="med-indicadores-container">
                     <p class="text-sm text-gray-400 italic text-center py-6 border border-dashed border-gray-200 rounded-lg">Seleccione una acción para cargar sus indicadores.</p>
@@ -383,12 +449,17 @@
             '<div class="grid grid-cols-3 gap-3">' +
                 '<div class="col-span-2"><label class="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>' +
                 '<input type="text" name="ind_nombre[]" required placeholder="Ej: Velocidad lectora" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
+                '<div class="col-span-1"><label class="block text-xs font-medium text-gray-600 mb-1">Descripción</label><input type="text" name="ind_descripcion[]" placeholder="Breve descripción del indicador" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
                 '<div><label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>' +
                 '<select name="ind_tipo[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white">' +
-                    '<option value="OTRO_CUANTITATIVO">Otro Cuantitativo</option><option value="NOTA">Nota</option>' +
-                    '<option value="ASISTENCIA">Asistencia</option><option value="HABILIDAD">Habilidad</option>' +
-                    '<option value="COMPETENCIA">Competencia</option><option value="INDICADOR_PEDAGOGICO">Ind. Pedagógico</option>' +
-                    '<option value="RUBRICA">Rúbrica</option></select></div>' +
+                    '<option value="HABILIDAD">Habilidad</option><option value="COMPETENCIA">Competencia</option>' +
+                    '<option value="INDICADOR_PEDAGOGICO">Ind. Pedagógico</option><option value="RUBRICA">Rúbrica</option>' +
+                    '<option value="OTRO_CUANTITATIVO">Otro Cuantitativo</option></select></div>' +
+            '</div>' +
+            '<div class="grid grid-cols-3 gap-3 mt-2">' +
+                '<div class="col-span-3"><label class="block text-xs font-medium text-gray-600 mb-1">Asignatura asociada</label>' +
+                '<select name="ind_asignatura[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white" id="ind-asig-' + indCounter + '"></select>' +
+                '<p class="text-xs text-gray-400 mt-1">Vincula la competencia a una asignatura. Si no eliges, será transversal.</p></div>' +
             '</div>' +
             '<div class="grid grid-cols-3 gap-3 mt-2">' +
                 '<div><label class="block text-xs font-medium text-gray-600 mb-1">Unidad</label><input type="text" name="ind_unidad[]" placeholder="Ej: PPM, %" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
@@ -400,10 +471,23 @@
                 '<div><label class="block text-xs font-medium text-gray-600 mb-1">Meta</label><input type="number" step="0.1" name="ind_meta[]" placeholder="Ej: 120" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
             '</div>' +
             '<div class="grid grid-cols-3 gap-3 mt-2">' +
-                '<div><label class="block text-xs font-medium text-gray-600 mb-1">Descripción</label><input type="text" name="ind_descripcion[]" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
                 '<div><label class="block text-xs font-medium text-gray-600 mb-1">Método Evaluación</label><input type="text" name="ind_metodo[]" placeholder="Ej: Test oral" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
                 '<div><label class="block text-xs font-medium text-gray-600 mb-1">Frecuencia</label><input type="text" name="ind_frecuencia[]" placeholder="Ej: Mensual" class="w-full px-3 py-2 border border-gray-300 rounded text-sm"></div>' +
             '</div>';
+        // Poblar select de asignaturas para este indicador
+        var selAsig = div.querySelector('select[name="ind_asignatura[]"]');
+        if (selAsig) {
+            var opt0 = document.createElement('option');
+            opt0.value = '';
+            opt0.textContent = 'Transversal (sin asignatura)';
+            selAsig.appendChild(opt0);
+            (window.ASIGNATURAS || []).forEach(function(a) {
+                var o = document.createElement('option');
+                o.value = a;
+                o.textContent = a;
+                selAsig.appendChild(o);
+            });
+        }
         container.appendChild(div);
     }
     function eliminarIndicador(id) {
@@ -431,6 +515,40 @@
         fetch('/ingesta/indicadores_de_accion/' + accionId)
             .then(function(r) { return r.json(); })
             .then(function(indicadores) {
+                // Derivar asignatura y precargar notas
+                var medAccion = document.getElementById('med-accion-select');
+                var medEst = document.getElementById('med-estudiante');
+                var medPer = document.getElementById('med-periodo');
+                var medRef = document.getElementById('med-notas-ref');
+                var medRefText = document.getElementById('med-notas-text');
+                var asig = '';
+                for (var i = 0; i < indicadores.length; i++) {
+                    if (indicadores[i].asignatura && indicadores[i].asignatura !== 'Transversal') {
+                        asig = indicadores[i].asignatura;
+                        break;
+                    }
+                }
+                if (medEst && medPer && asig) {
+                    var eid = medEst.value;
+                    var per = medPer.value.trim();
+                    if (eid && per) {
+                        fetch('/ingesta/notas_estudiante?estudiante_id=' + encodeURIComponent(eid) +
+                              '&periodo=' + encodeURIComponent(per) +
+                              '&asignatura=' + encodeURIComponent(asig))
+                            .then(function(r){ return r.json(); })
+                            .then(function(data) {
+                                if (medRef && medRefText) {
+                                    medRef.classList.remove('hidden');
+                                    if (data.existe) {
+                                        medRefText.textContent = 'Notas: ' + data.promedio_notas + ' | Asistencia: ' + data.porcentaje_asistencia + ' (precargado desde App Ponderado para ' + asig + ')';
+                                    } else {
+                                        medRefText.textContent = 'Sin registro previo en App Ponderado para ' + asig + ' en ' + per;
+                                    }
+                                }
+                            })
+                            .catch(function() { /* silencioso */ });
+                    }
+                }
                 if (indicadores.length === 0) {
                     container.innerHTML = '<p class="text-sm text-amber-600 text-center py-4 border border-amber-200 rounded-lg bg-amber-50"><i class="fas fa-exclamation-triangle"></i> Esta acción no tiene indicadores definidos. Use F-1 para agregarlos, o use F-4 para el flujo legacy (notas/asistencia).</p>';
                     return;
@@ -443,6 +561,7 @@
                     html += '<div class="grid grid-cols-12 gap-3 items-center bg-gray-50 p-3 rounded-lg border border-gray-200">';
                     html += '<div class="col-span-4"><p class="text-sm font-medium text-gray-900">' + ind.nombre + '</p>';
                     html += '<p class="text-xs text-gray-500">' + (ind.unidad_medida || ind.tipo) + ' · ' + dirLabel + '</p>';
+                    html += '<p class="text-xs text-indigo-600 font-medium">Asignatura: ' + ind.asignatura + '</p>';
                     html += '<p class="text-xs text-gray-400">Base: ' + (ind.linea_base != null ? ind.linea_base : 'N/A') + ' → Meta: ' + (ind.meta != null ? ind.meta : 'N/A') + '</p></div>';
                     html += '<input type="hidden" name="med_indicador_id[]" value="' + ind.id + '">';
                     html += '<div class="col-span-4"><label class="block text-xs text-gray-500 mb-1">Valor medido</label>';
@@ -458,5 +577,147 @@
                 container.innerHTML = '<p class="text-sm text-red-500 text-center py-4"><i class="fas fa-times-circle"></i> Error al cargar indicadores. Intente nuevamente.</p>';
             });
     }
+</script>
+<script>
+(function() {
+    var accionSel = document.getElementById('f2-accion');
+    var estSel = document.getElementById('f2-estudiante');
+    var perSel = document.getElementById('f2-periodo');
+    var asigInp = document.getElementById('f2-asignatura');
+    var notasInp = document.getElementById('f2-notas');
+    var asistInp = document.getElementById('f2-asist');
+    var notasHint = document.getElementById('f2-notas-hint');
+    var asistHint = document.getElementById('f2-asist-hint');
+
+    function setAsignaturaFromAccion() {
+        var aid = accionSel ? accionSel.value : '';
+        if (!aid) {
+            asigInp.value = '';
+            asigInp.readOnly = false;
+            return;
+        }
+        fetch('/ingesta/indicadores_de_accion/' + aid)
+            .then(function(r){ return r.json(); })
+            .then(function(inds) {
+                var asig = '';
+                for (var i = 0; i < inds.length; i++) {
+                    if (inds[i].asignatura && inds[i].asignatura !== 'Transversal') {
+                        asig = inds[i].asignatura;
+                        break;
+                    }
+                }
+                asigInp.value = asig;
+                asigInp.readOnly = !!asig;
+                cargarPeriodos();
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
+    function cargarPeriodos() {
+        if (!estSel || !asigInp) return;
+        var eid = estSel.value;
+        var asig = asigInp.value.trim();
+        if (!eid || !asig) return;
+        fetch('/ingesta/periodos_estudiante?estudiante_id=' + encodeURIComponent(eid) +
+              '&asignatura=' + encodeURIComponent(asig))
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                perSel.innerHTML = '<option value="" disabled selected>Seleccione período...</option>';
+                (data.periodos || []).forEach(function(p) {
+                    var o = document.createElement('option');
+                    o.value = p;
+                    o.textContent = p;
+                    perSel.appendChild(o);
+                });
+                if (data.periodos && data.periodos.length > 0) {
+                    perSel.value = data.periodos[data.periodos.length - 1];
+                    precargar();
+                }
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
+    function precargar() {
+        if (!estSel || !perSel || !asigInp) return;
+        var eid = estSel.value;
+        var per = perSel.value;
+        var asig = asigInp.value.trim();
+        if (!eid || !per || !asig) return;
+        fetch('/ingesta/notas_estudiante?estudiante_id=' + encodeURIComponent(eid) +
+              '&periodo=' + encodeURIComponent(per) +
+              '&asignatura=' + encodeURIComponent(asig))
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.existe) {
+                    notasInp.value = data.promedio_notas;
+                    asistInp.value = data.porcentaje_asistencia;
+                    notasInp.readOnly = true;
+                    asistInp.readOnly = true;
+                    if (notasHint) notasHint.textContent = 'Precargado desde App Ponderado';
+                    if (asistHint) asistHint.textContent = 'Precargado desde App Ponderado';
+                } else {
+                    notasInp.readOnly = false;
+                    asistInp.readOnly = false;
+                    notasInp.value = '';
+                    asistInp.value = '';
+                    if (notasHint) notasHint.textContent = 'Sin registro previo: puedes crear uno';
+                    if (asistHint) asistHint.textContent = 'Sin registro previo: puedes crear uno';
+                }
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
+    if (accionSel) accionSel.addEventListener('change', setAsignaturaFromAccion);
+    if (estSel) estSel.addEventListener('change', cargarPeriodos);
+    if (perSel) perSel.addEventListener('change', precargar);
+
+    // Precarga de notas en Mediciones de Indicadores
+    var medEst = document.getElementById('med-estudiante');
+    var medPer = document.getElementById('med-periodo');
+    var medAccion = document.getElementById('med-accion-select');
+    var medRef = document.getElementById('med-notas-ref');
+    var medRefText = document.getElementById('med-notas-text');
+
+    function precargarMed() {
+        if (!medAccion || !medEst || !medPer) return;
+        var aid = medAccion.value;
+        var eid = medEst.value;
+        var per = medPer.value.trim();
+        if (!aid || !eid || !per) return;
+        fetch('/ingesta/indicadores_de_accion/' + aid)
+            .then(function(r){ return r.json(); })
+            .then(function(inds) {
+                var asig = '';
+                for (var i = 0; i < inds.length; i++) {
+                    if (inds[i].asignatura && inds[i].asignatura !== 'Transversal') {
+                        asig = inds[i].asignatura;
+                        break;
+                    }
+                }
+                if (!asig) return;
+                fetch('/ingesta/notas_estudiante?estudiante_id=' + encodeURIComponent(eid) +
+                      '&periodo=' + encodeURIComponent(per) +
+                      '&asignatura=' + encodeURIComponent(asig))
+                    .then(function(r){ return r.json(); })
+                    .then(function(data) {
+                        if (medRef && medRefText) {
+                            medRef.classList.remove('hidden');
+                            if (data.existe) {
+                                medRefText.textContent = 'Notas: ' + data.promedio_notas + ' | Asistencia: ' + data.porcentaje_asistencia + ' (precargado desde App Ponderado para ' + asig + ')';
+                            } else {
+                                medRefText.textContent = 'Sin registro previo en App Ponderado para ' + asig + ' en ' + per;
+                            }
+                        }
+                    })
+                    .catch(function() { /* silencioso */ });
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
+    if (medAccion) medAccion.addEventListener('change', precargarMed);
+    if (medEst) medEst.addEventListener('change', precargarMed);
+    if (medPer) medPer.addEventListener('blur', precargarMed);
+})();
+</script>
 </script>
 {% endblock %}

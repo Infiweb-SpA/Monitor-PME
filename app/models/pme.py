@@ -112,6 +112,8 @@ class AccionPME(db.Model):
     meta_valor = db.Column(db.Float, nullable=True)
 
     curso_objetivo = db.Column(db.String(50), nullable=True)
+    # Curso paralelo que actua como grupo de control para comparar impacto
+    curso_control = db.Column(db.String(50), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

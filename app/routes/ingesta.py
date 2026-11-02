@@ -17,8 +17,11 @@ def index():
     acciones = AccionPME.query.filter(AccionPME.estado.in_(["Planificada", "En Ejecución"])).all()
     dimensiones = DimensionPME.query.all()
     estudiantes = Estudiante.query.filter_by(activo=True).all()
+    # Asignaturas distintas ya registradas (para asociar competencias)
+    asignaturas = [r[0] for r in db.session.query(RegistroAppPonderado.asignatura).distinct().all()]
     return render_template("ingesta/index.html", acciones=acciones,
-                           dimensiones=dimensiones, estudiantes=estudiantes)
+                           dimensiones=dimensiones, estudiantes=estudiantes,
+                           asignaturas=asignaturas)
 
 
 # --- NUEVO: Endpoint AJAX para indicadores de una acción ---
@@ -37,6 +40,7 @@ def indicadores_de_accion(accion_id):
             "direccion": d.direccion,
             "linea_base": d.linea_base,
             "meta": d.meta,
+            "asignatura": d.asignatura or "Transversal",
         })
     return jsonify(resultado)
 
@@ -94,6 +98,45 @@ def cargar_medicion_indicador():
 
 # --- Rutas existentes (sin cambios) ---
 
+@ingesta_bp.route("/periodos_estudiante")
+@login_required
+def periodos_estudiante():
+    """Devuelve los periodos disponibles para un estudiante en una asignatura (JSON)."""
+    estudiante_id = request.args.get("estudiante_id")
+    asignatura = request.args.get("asignatura")
+    if not all([estudiante_id, asignatura]):
+        return jsonify({"periodos": []})
+    regs = RegistroAppPonderado.query.filter_by(
+        estudiante_id=int(estudiante_id),
+        asignatura=asignatura,
+    ).all()
+    periodos = sorted({r.periodo for r in regs})
+    return jsonify({"periodos": periodos})
+
+
+@ingesta_bp.route("/notas_estudiante")
+@login_required
+def notas_estudiante():
+    """Devuelve notas/asistencia existentes para un estudiante/periodo/asignatura (JSON)."""
+    estudiante_id = request.args.get("estudiante_id")
+    periodo = request.args.get("periodo")
+    asignatura = request.args.get("asignatura")
+    if not all([estudiante_id, periodo, asignatura]):
+        return jsonify({"existe": False})
+    reg = RegistroAppPonderado.query.filter_by(
+        estudiante_id=int(estudiante_id),
+        periodo=periodo,
+        asignatura=asignatura,
+    ).order_by(RegistroAppPonderado.fecha_registro.desc()).first()
+    if not reg:
+        return jsonify({"existe": False})
+    return jsonify({
+        "existe": True,
+        "promedio_notas": reg.promedio_notas,
+        "porcentaje_asistencia": reg.porcentaje_asistencia,
+    })
+
+
 @ingesta_bp.route("/app_ponderado", methods=["POST"])
 @login_required
 def cargar_app_ponderado():
@@ -104,10 +147,15 @@ def cargar_app_ponderado():
     promedio = request.form.get("promedio_notas")
     asistencia = request.form.get("porcentaje_asistencia")
     bitacora = request.form.get("bitacora")
+    grupo = request.form.get("grupo", "Intervenido")
+    competencia = request.form.get("competencia", "").strip()
 
     if not all([estudiante_id, periodo, asignatura, promedio, asistencia]):
         flash("Todos los campos de App Ponderado son obligatorios", "error")
         return redirect(url_for("ingesta.index"))
+
+    if competencia:
+        bitacora = (bitacora or "") + f"\n[Competencia: {competencia}]"
 
     registro = RegistroAppPonderado(
         estudiante_id=int(estudiante_id),
@@ -115,6 +163,7 @@ def cargar_app_ponderado():
         asignatura=asignatura,
         promedio_notas=float(promedio),
         porcentaje_asistencia=float(asistencia),
+        grupo=grupo,
         bitacora=bitacora
     )
     db.session.add(registro)
