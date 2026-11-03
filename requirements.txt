@@ -6,5 +6,7 @@ WTForms
 Werkzeug
 pandas
 numpy
+scipy
 python-dotenv
 Faker
+gunicorn
