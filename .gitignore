@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Monitor-PME (agregados para Railway)
+*.db
+*.sqlite
+*.sqlite3
+app/static/uploads/

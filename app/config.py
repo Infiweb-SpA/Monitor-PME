@@ -7,9 +7,13 @@ class Config:
     """Configuración base compartida por todos los entornos."""
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "edugest-dev-secret-key-2026")
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", "sqlite:///edugest_pme.db"
-    )
+
+    # Railway/Heroku entregan "postgres://"; SQLAlchemy espera "postgresql://"
+    _raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///edugest_pme.db")
+    if _raw_db_url.startswith("postgres://"):
+        _raw_db_url = _raw_db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _raw_db_url
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
 
@@ -20,9 +24,12 @@ class Config:
     UMBRAL_SEMAFORO_AMARILLO = 0.95
     UMBRAL_SEMAFORO_VERDE = 1.0
 
-    # Configuración de carga de archivos
+    # Configuración de carga de archivos (sobrescribible por env en Railway)
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
+    UPLOAD_FOLDER = os.environ.get(
+        "UPLOAD_FOLDER",
+        os.path.join(os.path.dirname(__file__), "static", "uploads"),
+    )
 
 
 class DevelopmentConfig(Config):
