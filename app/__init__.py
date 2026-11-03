@@ -37,11 +37,37 @@ def create_app(config_name="default"):
 
         db.create_all()
 
+        # Migraciones ligeras: create_all() no agrega columnas a tablas que
+        # ya existen, así que se asegura la columna nueva de forma idempotente.
+        _asegurar_columna(
+            "participaciones_accion", "periodo",
+            "ALTER TABLE participaciones_accion ADD COLUMN periodo VARCHAR(10)",
+        )
+        db.session.commit()
+
     import json
     @app.template_filter('from_json')
     def from_json_filter(value):
         return json.loads(value)
     return app
+
+
+def _asegurar_columna(tabla, columna, ddl):
+    """Agrega una columna faltante a una tabla ya existente (idempotente).
+
+    El proyecto no usa Flask-Migrate y `create_all()` no altera tablas
+    existentes, así que se verifica con PRAGMA/inspección antes de ejecutar
+    el ALTER. Si la columna ya existe, no hace nada.
+    """
+    from sqlalchemy import inspect, text
+    from app.extensions import db
+
+    insp = inspect(db.engine)
+    if not insp.has_table(tabla):
+        return
+    columnas = [c["name"] for c in insp.get_columns(tabla)]
+    if columna not in columnas:
+        db.session.execute(text(ddl))
 
 
 def _registrar_blueprints(app):

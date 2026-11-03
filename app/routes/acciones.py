@@ -7,12 +7,32 @@ from flask_login import login_required
 import pandas as pd
 from app.extensions import db
 from app.models.pme import AccionPME, ObjetivoPME, DimensionPME
-from app.models.metrics import IndicadorAccion, DefinicionIndicador
-from app.services.pme_engine import obtener_impacto_individual, obtener_impacto_individual_nuevo
+from app.models.metrics import IndicadorAccion, DefinicionIndicador, ParticipacionAccion
+from app.services.pme_engine import (obtener_impacto_individual, obtener_impacto_individual_nuevo,
+                                     procesar_indicadores_accion, desglosar_periodo)
 from app.utils import parse_date
 
 
 acciones_bp = Blueprint("acciones", __name__, template_folder="../templates/acciones")
+
+# Estados validos de una accion PME (ver AccionPME.estado en models/pme.py)
+ESTADOS_ACCION = ("Planificada", "En Ejecución", "Finalizada", "Cancelada")
+
+# Etiquetas y colores de la gráfica de distribución de alumnos
+_DISTRIB_NUEVO = {
+    "META_ALCANZADA": ("Meta alcanzada", "#22c55e"),
+    "EN_PROGRESO": ("En progreso", "#06b6d4"),
+    "ESTABLE": ("Sin cambio", "#9ca3af"),
+    "RETROCESO": ("Retroceso", "#ef4444"),
+    "SIN_DATOS": ("Sin datos", "#e5e7eb"),
+}
+_DISTRIB_LEGACY = {
+    "Mejora alta": ("Mejora alta", "#22c55e"),
+    "Mejora leve": ("Mejora leve", "#06b6d4"),
+    "Estable": ("Estable", "#9ca3af"),
+    "Retroceso": ("Retroceso", "#ef4444"),
+    "Sin datos": ("Sin datos", "#e5e7eb"),
+}
 
 
 @acciones_bp.route("/")
@@ -38,15 +58,96 @@ def detalle(accion_id):
 
     if definiciones:
         alumnos = obtener_impacto_individual_nuevo(accion_id)
+        mapa_distrib = _DISTRIB_NUEVO
+        clave = lambda a: a.get("estado_grupal")
     else:
         alumnos = obtener_impacto_individual(accion_id)
+        mapa_distrib = _DISTRIB_LEGACY
+        clave = lambda a: a.get("clasificacion")
+
+    # Distribución de alumnos por estado (para la gráfica doughnut)
+    conteos = {}
+    for a in alumnos:
+        k = clave(a)
+        if k in mapa_distrib:
+            conteos[k] = conteos.get(k, 0) + 1
+    distribucion = [
+        {"label": mapa_distrib[k][0], "valor": conteos[k], "color": mapa_distrib[k][1]}
+        for k in mapa_distrib if conteos.get(k)
+    ]
+
+    # Semestres con horas registradas: origen del reparto en la gráfica
+    periodos_semestre = sorted({
+        p[0] for p in db.session.query(ParticipacionAccion.periodo)
+        .filter(ParticipacionAccion.accion_id == accion_id,
+                ParticipacionAccion.periodo.like("%-S%"))
+        .distinct().all() if p[0]
+    })
 
     return render_template(
         "acciones/detalle.html",
         accion=accion, indicador=indicador,
         historico=historico, alumnos=alumnos,
         definiciones=definiciones,
+        estados_accion=ESTADOS_ACCION,
+        distribucion=distribucion,
+        periodos_semestre=periodos_semestre,
     )
+
+
+@acciones_bp.route("/recalcular/<int:accion_id>", methods=["POST"])
+@login_required
+def recalcular(accion_id):
+    """Vuelve a correr el motor para todos los periodos con horas registradas.
+
+    Permite desglosar en meses un semestre ya cargado (reparto equitativo de
+    horas) sin tener que volver a registrar las participaciones.
+    """
+    accion = AccionPME.query.get_or_404(accion_id)
+    periodos = [p[0] for p in db.session.query(ParticipacionAccion.periodo)
+                .filter(ParticipacionAccion.accion_id == accion_id).distinct().all() if p[0]]
+    if not periodos:
+        flash("Esta acción no tiene horas registradas para recalcular (cargue datos con F-4).", "warning")
+        return redirect(url_for("acciones.detalle", accion_id=accion_id))
+
+    # Meses primero y semestres al final: el desglose del semestre sobrescribe
+    # con su reparto equitativo los meses que ya estaban calculados.
+    periodos.sort(key=lambda p: (len(desglosar_periodo(p)) > 1, p))
+
+    procesados, sin_datos = [], []
+    for per in periodos:
+        ind = procesar_indicadores_accion(accion_id, per)
+        (procesados if ind else sin_datos).append(per)
+
+    if procesados:
+        msg = f"Indicadores recalculados para: {', '.join(procesados)}."
+        if sin_datos:
+            msg += f" Sin datos para: {', '.join(sin_datos)}."
+        flash(msg, "success")
+    else:
+        flash("No se pudieron recalcular los indicadores: faltan notas o mediciones.", "warning")
+
+    return redirect(url_for("acciones.detalle", accion_id=accion_id))
+
+
+@acciones_bp.route("/cambiar_estado/<int:accion_id>", methods=["POST"])
+@login_required
+def cambiar_estado(accion_id):
+    """Cambia el estado de una acción (usado desde la vista de detalle)."""
+    accion = AccionPME.query.get_or_404(accion_id)
+    nuevo = (request.form.get("estado") or "").strip()
+
+    if nuevo not in ESTADOS_ACCION:
+        flash(f"Estado no válido: «{nuevo}». Use uno de: {', '.join(ESTADOS_ACCION)}.", "error")
+    elif nuevo == accion.estado:
+        flash(f"La acción ya está en estado «{nuevo}».", "info")
+    else:
+        anterior = accion.estado
+        accion.estado = nuevo
+        db.session.commit()
+        flash(f"Estado de «{accion.nombre}» actualizado: {anterior} → {nuevo}.", "success")
+
+    return redirect(url_for("acciones.detalle", accion_id=accion_id))
 
 
 @acciones_bp.route("/nueva", methods=["GET", "POST"])

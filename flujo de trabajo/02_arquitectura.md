@@ -108,7 +108,7 @@ DimensionPME
 | `Estudiante` | `estudiantes` | Alumnos | `curso_id`, `establecimiento_id` |
 | `RegistroAppPonderado` | `registros_app_ponderado` | Notas y asistencia (F-2) | `estudiante_id` |
 | `MetricaSIGE` | `metricas_sige` | Métricas oficiales (F-3) | `establecimiento_id` |
-| `ParticipacionAccion` | `participaciones_accion` | Horas/asistencia a talleres (F-4) | `estudiante_id`, `accion_id` |
+| `ParticipacionAccion` | `participaciones_accion` | Horas/asistencia a talleres (F-4) | `estudiante_id`, `accion_id`, `periodo` |
 | `DefinicionIndicador` | `definiciones_indicador` | Indicadores personalizados (F-1) | `accion_id` |
 | `MedicionIndicador` | `mediciones_indicador` | Valores medidos (F-2 parte 2) | `indicador_def_id`, `estudiante_id` |
 | `IndicadorAccion` | `indicadores_accion` | Resultados del motor por mes (IEA, IPA, Pearson, semáforo, proyección) | `accion_id` |
@@ -129,9 +129,11 @@ Funciones clave:
 - `calcular_correlacion_pearson(x, y)` → coeficiente de Pearson.
 - `determinar_semaforo(proyeccion, umbral_rojo, umbral_amarillo)` → `Rojo` / `Amarillo` / `Verde`.
 - `proyectar_cumplimiento(serie, meta, x_indices)` → regresión lineal y proyección a fin de año.
+- `desglosar_periodo(periodo)` → meses que componen el período: mes → 1 elemento, semestre (`2026-S1/S2`) → sus 4 meses, otro formato → sin cambios.
 - `procesar_indicadores_accion(accion_id, periodo)` → **dispatcher**:
-  - Si la acción tiene `DefinicionIndicador` activos → `_procesar_nuevo_modelo`.
-  - Si no → `_procesar_legacy`.
+  - Si `periodo` es un mes → procesa ese mes (una fila en `indicadores_accion`).
+  - Si `periodo` es un semestre → **desglosa en sus meses**: reparte las horas del semestre (más las filas `NULL`) en partes iguales, suma las horas ya mensuales del rango en su mes y crea **una fila por mes**; borra la fila agregada del semestre. Usa `horas=` para inyectar el reparto y `periodo_ref=` (el semestre) como respaldo para buscar mediciones/notas si el mes no tiene datos propios.
+  - Con `DefinicionIndicador` activos → `_procesar_nuevo_modelo`; si no → `_procesar_legacy`.
 - `obtener_impacto_individual(accion_id)` → impacto por alumno en el modelo legacy.
 - `obtener_impacto_individual_nuevo(accion_id)` → impacto por alumno con múltiples indicadores.
 
@@ -208,13 +210,16 @@ Templates:
 |---|---|---|---|
 | GET | `/ingesta/indicadores_de_accion/<accion_id>` | `routes/ingesta.py` | JSON con indicadores activos y su `asignatura` |
 | GET | `/ingesta/periodos_estudiante?estudiante_id=&asignatura=` | `routes/ingesta.py` | JSON `{periodos: [...]}` |
-| GET | `/ingesta/notas_estudiante?estudiante_id=&periodo=&asignatura=` | `routes/ingesta.py` | JSON `{existe, promedio_notas, porcentaje_asistencia}` |
+| GET | `/ingesta/notas_estudiante?estudiante_id=&periodo=&asignatura=` | `routes/ingesta.py` | JSON `{existe, promedio_notas, porcentaje_asistencia}` (más reciente) |
+| GET | `/ingesta/notas_periodos?estudiante_id=&asignatura=&desde=&hasta=` | `routes/ingesta.py` | JSON con `registros[]`, `promedio_notas`, `porcentaje_asistencia`, `nota_min/max`, `n_periodos`, `n_periodos_rango`, `periodos_faltantes[]`. Sin `desde`/`hasta` devuelve todos los periodos; con rango promedia **solo los meses que tienen registro** (deduplica por periodo, gana el más reciente) |
 | POST | `/ingesta/app_ponderado` | `routes/ingesta.py` | Guarda `RegistroAppPonderado` |
 | POST | `/ingesta/medicion_indicador` | `routes/ingesta.py` | Guarda `MedicionIndicador` |
 | POST | `/ingesta/participacion` | `routes/ingesta.py` | Guarda `ParticipacionAccion` y dispara `pme_engine` |
 | POST | `/ingesta/sige` | `routes/ingesta.py` | Guarda `MetricaSIGE` |
 | POST | `/acciones/nueva` | `routes/acciones.py` | Crea `AccionPME` + `DefinicionIndicador` |
-| GET | `/acciones/detalle/<id>` | `routes/acciones.py` | Vista de impacto por acción |
+| GET | `/acciones/detalle/<id>` | `routes/acciones.py` | Vista de impacto por acción: KPIs, histórico mensual (`historico`), distribución de alumnos (`distribucion`), select de estado (`estados_accion`) y semestres con horas (`periodos_semestre`) |
+| POST | `/acciones/cambiar_estado/<id>` | `routes/acciones.py` | Cambia `AccionPME.estado` validando contra `ESTADOS_ACCION` (`Planificada`, `En Ejecución`, `Finalizada`, `Cancelada`) y redirige al detalle |
+| POST | `/acciones/recalcular/<id>` | `routes/acciones.py` | Vuelve a correr `procesar_indicadores_accion` para cada período con horas (meses primero, semestres al final); desglosa un semestre ya cargado en filas mensuales sin duplicar horas |
 | GET | `/reportes/exportar_excel` | `routes/reportes.py` | Excel Matriz de Rendición |
 | GET | `/reportes/auditoria` | `routes/reportes.py` | ZIP de trazabilidad |
 

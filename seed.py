@@ -264,6 +264,7 @@ def crear_registros_app_ponderado(estudiantes):
 def crear_participaciones(estudiantes, acciones):
     """Genera participaciones de estudiantes en acciones PME."""
     acciones_con_participantes = [a for a in acciones if a.curso_objetivo != "Todos" and a.estado != "Planificada"]
+    meses = [f"{ANIO_GESTION}-{m:02d}" for m in range(3, 11)]
 
     for accion in acciones_con_participantes:
         estudiantes_curso = [e for e in estudiantes if e.curso.nombre == accion.curso_objetivo]
@@ -277,6 +278,7 @@ def crear_participaciones(estudiantes, acciones):
                 part = ParticipacionAccion(
                     estudiante_id=est.id,
                     accion_id=accion.id,
+                    periodo=random.choice(meses),
                     horas_asistencia=round(horas, 1),
                     asistencia_talleres=talleres,
                 )

@@ -5,9 +5,20 @@ from app.extensions import db
 from app.models.pme import AccionPME, DimensionPME, ObjetivoPME
 from app.models.metrics import (RegistroAppPonderado, MetricaSIGE, ParticipacionAccion,
                                  Estudiante, DefinicionIndicador, MedicionIndicador)
-from app.services.pme_engine import procesar_indicadores_accion
+from app.services.pme_engine import procesar_indicadores_accion, desglosar_periodo
 
 ingesta_bp = Blueprint("ingesta", __name__, template_folder="../templates/ingesta")
+
+# Año de gestión y rangos fijos de semestre (formato periodo "YYYY-MM")
+ANIO_GESTION = 2026
+SEMESTRES = {
+    "2026-S1": ("2026-03", "2026-06"),
+    "2026-S2": ("2026-07", "2026-10"),
+}
+ETIQUETAS_SEMESTRE = {
+    "2026-S1": "Promedio semestre 1 (2026-03 a 2026-06)",
+    "2026-S2": "Promedio semestre 2 (2026-07 a 2026-10)",
+}
 
 
 @ingesta_bp.route("/")
@@ -19,9 +30,13 @@ def index():
     estudiantes = Estudiante.query.filter_by(activo=True).all()
     # Asignaturas distintas ya registradas (para asociar competencias)
     asignaturas = [r[0] for r in db.session.query(RegistroAppPonderado.asignatura).distinct().all()]
+    # Periodos disponibles en F-4: meses del año de gestión (marzo a octubre)
+    meses_gestion = [f"{ANIO_GESTION}-{m:02d}" for m in range(3, 11)]
     return render_template("ingesta/index.html", acciones=acciones,
                            dimensiones=dimensiones, estudiantes=estudiantes,
-                           asignaturas=asignaturas)
+                           asignaturas=asignaturas,
+                           meses_gestion=meses_gestion,
+                           semestres=SEMESTRES, etiquetas_semestre=ETIQUETAS_SEMESTRE)
 
 
 # --- NUEVO: Endpoint AJAX para indicadores de una acción ---
@@ -106,8 +121,12 @@ def periodos_estudiante():
     asignatura = request.args.get("asignatura")
     if not all([estudiante_id, asignatura]):
         return jsonify({"periodos": []})
+    try:
+        eid = int(estudiante_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "estudiante_id inválido"}), 400
     regs = RegistroAppPonderado.query.filter_by(
-        estudiante_id=int(estudiante_id),
+        estudiante_id=eid,
         asignatura=asignatura,
     ).all()
     periodos = sorted({r.periodo for r in regs})
@@ -123,17 +142,131 @@ def notas_estudiante():
     asignatura = request.args.get("asignatura")
     if not all([estudiante_id, periodo, asignatura]):
         return jsonify({"existe": False})
+    try:
+        eid = int(estudiante_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "estudiante_id inválido"}), 400
     reg = RegistroAppPonderado.query.filter_by(
-        estudiante_id=int(estudiante_id),
+        estudiante_id=eid,
         periodo=periodo,
         asignatura=asignatura,
-    ).order_by(RegistroAppPonderado.fecha_registro.desc()).first()
+    ).order_by(
+        RegistroAppPonderado.fecha_registro.desc(),
+        RegistroAppPonderado.id.desc(),
+    ).first()
     if not reg:
         return jsonify({"existe": False})
     return jsonify({
         "existe": True,
         "promedio_notas": reg.promedio_notas,
         "porcentaje_asistencia": reg.porcentaje_asistencia,
+    })
+
+
+def _meses_entre(desde, hasta):
+    """Lista los periodos "YYYY-MM" inclusivos entre dos limites."""
+    try:
+        y1, m1 = int(desde[:4]), int(desde[5:7])
+        y2, m2 = int(hasta[:4]), int(hasta[5:7])
+    except (ValueError, IndexError, TypeError):
+        return []
+    meses = []
+    y, m = y1, m1
+    while (y, m) <= (y2, m2):
+        meses.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+        if len(meses) > 120:  # corte de seguridad
+            break
+    return meses
+
+
+@ingesta_bp.route("/notas_periodos")
+@login_required
+def notas_periodos():
+    """Notas/asistencia de un estudiante en una asignatura, opcionalmente en un rango.
+
+    Sin `desde`/`hasta` devuelve todos los periodos con registro.
+    Con rango devuelve el promedio simple de los meses que SÍ tienen datos
+    (los meses sin registro se excluyen, no se cuentan como 0), mas el
+    desglose minimo/maximo y los meses faltantes del rango.
+    """
+    estudiante_id = request.args.get("estudiante_id")
+    asignatura = request.args.get("asignatura")
+    desde = (request.args.get("desde") or "").strip()
+    hasta = (request.args.get("hasta") or "").strip()
+
+    if not estudiante_id or not asignatura:
+        return jsonify({"existe": False, "periodos": [], "registros": []})
+    try:
+        eid = int(estudiante_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "estudiante_id inválido"}), 400
+
+    query = RegistroAppPonderado.query.filter_by(
+        estudiante_id=eid, asignatura=asignatura
+    )
+    if desde:
+        query = query.filter(RegistroAppPonderado.periodo >= desde)
+    if hasta:
+        query = query.filter(RegistroAppPonderado.periodo <= hasta)
+
+    # Orden por periodo ascendente y, dentro del mismo periodo, el registro
+    # mas reciente primero: si hay duplicados se usa la fila mas nueva.
+    # El desempate por id garantiza determinismo cuando fecha_registro coincide.
+    regs = query.order_by(
+        RegistroAppPonderado.periodo.asc(),
+        RegistroAppPonderado.fecha_registro.desc(),
+        RegistroAppPonderado.id.desc(),
+    ).all()
+
+    vistos = set()
+    registros = []
+    for r in regs:
+        if r.periodo in vistos:
+            continue
+        vistos.add(r.periodo)
+        registros.append({
+            "periodo": r.periodo,
+            "promedio_notas": r.promedio_notas,
+            "porcentaje_asistencia": r.porcentaje_asistencia,
+        })
+
+    meses_rango = _meses_entre(desde, hasta) if (desde and hasta) else []
+    faltantes = [m for m in meses_rango if m not in vistos]
+
+    if not registros:
+        return jsonify({
+            "existe": False,
+            "periodos": [],
+            "registros": [],
+            "n_periodos": 0,
+            "n_periodos_rango": len(meses_rango),
+            "periodos_faltantes": faltantes,
+            "desde": desde or None,
+            "hasta": hasta or None,
+        })
+
+    notas = [r["promedio_notas"] for r in registros]
+    asist = [r["porcentaje_asistencia"] for r in registros]
+
+    return jsonify({
+        "existe": True,
+        "periodos": [r["periodo"] for r in registros],
+        "registros": registros,
+        "promedio_notas": round(sum(notas) / len(notas), 2),
+        "porcentaje_asistencia": round(sum(asist) / len(asist), 1),
+        "nota_min": round(min(notas), 2),
+        "nota_max": round(max(notas), 2),
+        "asist_min": round(min(asist), 1),
+        "asist_max": round(max(asist), 1),
+        "n_periodos": len(registros),
+        "n_periodos_rango": len(meses_rango) if meses_rango else None,
+        "periodos_faltantes": faltantes,
+        "desde": desde or None,
+        "hasta": hasta or None,
     })
 
 
@@ -220,19 +353,31 @@ def cargar_participacion():
         participacion = ParticipacionAccion(
             estudiante_id=int(est_id),
             accion_id=int(accion_id),
+            periodo=periodo,
             horas_asistencia=float(horas)
         )
         db.session.add(participacion)
 
     db.session.commit()
 
+    meses = desglosar_periodo(periodo)
     indicador = procesar_indicadores_accion(int(accion_id), periodo)
 
     if indicador:
-        flash(f"Motor actualizado. {len(estudiante_ids)} alumnos cargados. "
-              f"Semáforo: {indicador.estado_semaforo}", "info")
+        if len(meses) > 1:
+            flash(f"Semestre {periodo} desglosado en {len(meses)} meses ({meses[0]} a {meses[-1]}): "
+                  f"las {horas} hrs de cada uno de los {len(estudiante_ids)} alumnos se repartieron "
+                  f"en partes iguales entre los meses. Semáforo: {indicador.estado_semaforo}", "info")
+        else:
+            flash(f"Motor actualizado para el periodo {periodo}. {len(estudiante_ids)} alumnos cargados "
+                  f"({horas} hrs c/u). Semáforo: {indicador.estado_semaforo}", "info")
     else:
-        flash("Participación guardada. Faltan datos en App Ponderado para calcular indicadores.",
-              "warning")
+        if len(meses) > 1:
+            flash(f"Participación guardada para el semestre {periodo}, pero no hay datos de "
+                  f"notas/mediciones para calcular indicadores.", "warning")
+        else:
+            flash(f"Participación guardada para el periodo {periodo}. "
+                  f"Faltan datos en App Ponderado para calcular indicadores.",
+                  "warning")
 
     return redirect(url_for("ingesta.index"))

@@ -21,10 +21,10 @@ Leyenda de prioridad:
 - **Problema:** si una acción tiene varios indicadores con asignaturas distintas (Matemáticas, Lenguaje, etc.), la UI toma la primera que encuentra y precarga notas de esa asignatura. No hay forma de elegir cuál indicador/asignatura se está midiendo.
 - **Recomendación:** añadir un selector de indicador (o de asignatura) en F‑2; o decidir a nivel de acción una única asignatura.
 
-### 🟡 1.3 F‑2 Parte 2 mantiene “Periodo” como texto libre
-- **Archivo:** `app/templates/ingesta/index.html` (línea ~298)
-- **Problema:** en Parte 1 el período es un `<select>` dinámico, pero en “Mediciones de Indicadores” sigue siendo un `<input type="text" placeholder="Ej: 2026-08">`. La precarga se dispara en `blur`; si el usuario escribe y hace clic directo en “Registrar”, la precarga puede no ejecutarse.
-- **Recomendación:** reutilizar el mismo select dinámico de períodos o, al menos, disparar la precarga también en `change`/`input` y antes del submit.
+### ✅ 1.3 F‑2 Parte 2 mantiene “Periodo” como texto libre *(RESUELTO)*
+- **Archivo:** `app/templates/ingesta/index.html` (`#med-periodo`)
+- **Estado:** el período ahora es un `<select>` dinámico construido con `/ingesta/periodos_estudiante` (mismo patrón que F‑2 Parte 1), más dos opciones fijas de promedio semestral (`2026-S1`, `2026-S2`). La precarga se dispara en `change` (no en `blur`), por lo que también se ejecuta antes de enviar el formulario.
+- **Detalle:** el bloque de referencia usa el nuevo endpoint `/ingesta/notas_periodos`, que acepta `desde`/`hasta` para promediar un rango de meses (ver §4.4).
 
 ### 🟡 1.4 El catálogo de asignaturas puede quedar vacío
 - **Archivo:** `app/routes/ingesta.py` (`index`) + `app/templates/ingesta/index.html` (`window.ASIGNATURAS`)
@@ -72,10 +72,10 @@ Leyenda de prioridad:
 - **Problema:** `gasto_mes = accion.presupuesto_ejecutado` (total acumulado) se guarda igual para cada período. El IEA mensual se calcula con el gasto total, no con el gasto del mes.
 - **Recomendación:** registrar gasto por período (nueva tabla o campo mensual) o aclarar que el IEA es acumulado.
 
-### 🟡 2.6 Las horas de participación no se filtran por período
-- **Archivo:** `app/services/pme_engine.py` (`_horas_por_estudiante`)
-- **Problema:** suma **todas** las participaciones de la acción, sin importar el período. Al calcular un mes, se usan horas de todos los meses.
-- **Recomendación:** filtrar por rango/periodo o guardar el período en `ParticipacionAccion`.
+### ✅ 2.6 Las horas de participación no se filtran por período *(RESUELTO)*
+- **Archivo:** `app/services/pme_engine.py` (`_horas_por_estudiante`) + `app/models/metrics.py` (`ParticipacionAccion.periodo`)
+- **Estado:** `ParticipacionAccion` tiene columna `periodo` (nullable, `"YYYY-MM"` o `"YYYY-S1/S2"`), que F-4 guarda desde un select. `_horas_por_estudiante(accion_id, periodo)` filtra por ese periodo y suma además las filas `NULL` (legado, compatibles con datos previos). Los reportes de impacto individual siguen usando el total acumulado (sin filtro).
+- **Nota:** la columna se agrega automáticamente al arrancar la app (`_asegurar_columna` en `app/__init__.py`), ya que el proyecto no usa Flask-Migrate.
 
 ### 🟡 2.7 `MetricaSIGE.establecimiento_id` está fijo en 1
 - **Archivo:** `app/routes/ingesta.py` (`cargar_sige`)
@@ -130,10 +130,9 @@ Leyenda de prioridad:
 
 ## 4. Backend / rutas
 
-### 🟡 4.1 Conversión `int()` sin manejo de errores
-- **Archivo:** `app/routes/ingesta.py` (`periodos_estudiante`, `notas_estudiante`)
-- **Problema:** `int(estudiante_id)` lanza `ValueError` si el parámetro no es numérico → error 500.
-- **Recomendación:** validar y devolver `jsonify({"error": ...})` con código 400.
+### ✅ 4.1 Conversión `int()` sin manejo de errores *(RESUELTO)*
+- **Archivo:** `app/routes/ingesta.py` (`periodos_estudiante`, `notas_estudiante`, `notas_periodos`)
+- **Estado:** los tres endpoints validan `estudiante_id` y devuelven `{"error": ...}` con código 400 en lugar de lanzar `ValueError` → 500.
 
 ### 🟡 4.2 `acciones.nueva_accion` puede crear indicadores duplicados
 - **Archivo:** `app/routes/acciones.py` (~líneas 91–113)
@@ -147,8 +146,9 @@ Leyenda de prioridad:
 
 ### 🟡 4.4 Formatos de período inconsistentes
 - **Archivos:** `app/templates/ingesta/index.html` (F‑2 Parte 1, F‑2 Parte 2, F‑4) + `app/models/metrics.py`
-- **Problema:** el período se escribe libremente en F‑2 Parte 2 y F‑4 (`2026-08`, `2026-T1`, `Agosto`, etc.). El motor y las consultas de notas esperan coincidencia exacta con `RegistroAppPonderado.periodo`. Un formato distinto hace que no se encuentren datos.
-- **Recomendación:** estandarizar el formato (`YYYY-MM`) y usar selects/validación en todos los formularios.
+- **Estado:** los tres formularios usan ahora `<select>` con valores estandarizados (`YYYY-MM`), por lo que el riesgo de escritura libre desaparece en la UI. Siguen existiendo posibles filas históricas con formatos libres (`2026-T1`, `Agosto`) que el motor no encontrará.
+- **Nota:** F‑2 Parte 2 y F‑4 pueden guardar los valores semestrales `2026-S1` / `2026-S2` (rango fijo de meses). Al procesar un semestre el motor lo **desglosa en sus meses** (reparto equitativo de horas) y usa el semestre como respaldo para buscar mediciones/notas, así que las filas semestrales sí se aprovechan.
+- **Recomendación:** depurar o migrar filas históricas con formato distinto de `YYYY-MM`.
 
 ### 🟢 4.5 Sin protección CSRF
 - **Archivos:** todos los formularios POST.
@@ -165,9 +165,10 @@ Leyenda de prioridad:
 ## 5. Consistencia de la información mostrada
 
 ### 🟡 5.1 “Asignatura: Transversal” en mediciones
-- **Archivo:** `app/templates/ingesta/index.html` (render de indicadores en F‑2 Parte 2)
-- **Problema:** si `DefinicionIndicador.asignatura` es `NULL`, se muestra “Transversal”. Es correcto, pero puede confundir cuando el usuario esperaba una asignatura derivada. Además, en ese caso no se precargan notas.
-- **Recomendación:** mostrar un aviso explícito (“Indicador transversal: no se precargan notas”) y permitir asociar asignatura desde F‑1.
+- **Archivo:** `app/templates/ingesta/index.html` (select `#med-periodo` y render de indicadores en F‑2 Parte 2)
+- **Problema:** si `DefinicionIndicador.asignatura` es `NULL`, se muestra “Transversal” y no hay notas que precargar.
+- **Estado parcial:** ahora el select de período muestra un aviso explícito (`#med-periodo-hint`): *"La acción no tiene asignatura asociada (transversal): no hay notas que precargar."*
+- **Pendiente:** permitir asociar la asignatura desde F‑1 y mostrar el aviso también junto a cada indicador.
 
 ### 🟡 5.2 Mensaje de precarga exitosa no distingue el origen
 - **Archivo:** `app/templates/ingesta/index.html`
@@ -203,8 +204,8 @@ Leyenda de prioridad:
 - [ ] F‑2 Parte 1: se puede enviar el formulario sin seleccionar acción (asignatura manual).
 - [ ] F‑2 Parte 1: el período se carga dinámicamente al elegir estudiante + asignatura.
 - [ ] F‑2 Parte 1: las notas se precargan y quedan en solo lectura.
-- [ ] F‑2 Parte 2: el período es consistente con Parte 1 (idealmente select).
-- [ ] F‑2 Parte 2: la precarga se ejecuta antes del submit.
+- [x] F‑2 Parte 2: el período es consistente con Parte 1 (select dinámico + semestres).
+- [x] F‑2 Parte 2: la precarga se ejecuta antes del submit (evento `change`).
 - [ ] F‑2 Parte 2: se muestra claramente si el indicador es transversal.
 
 ### Datos
@@ -212,7 +213,7 @@ Leyenda de prioridad:
 - [ ] No se crean duplicados en `MedicionIndicador`.
 - [ ] Las notas usadas por el motor filtran por asignatura cuando corresponde.
 - [ ] El gasto mensual no repite el total acumulado.
-- [ ] Las horas de participación se filtran por período.
+- [x] Las horas de participación se filtran por período (columna `periodo` + `_horas_por_estudiante(accion_id, periodo)`).
 - [ ] `MetricaSIGE` usa el establecimiento correcto.
 - [ ] `calificaciones_consolidadas` y `asistencia_talleres` se capturan o se eliminan de reportes.
 

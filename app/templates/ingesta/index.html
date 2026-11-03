@@ -4,6 +4,7 @@
 
 {% block content %}
 <script>window.ASIGNATURAS = {{ asignaturas|tojson }};</script>
+<script>window.SEMESTRES = {{ semestres|tojson }}; window.ETIQUETAS_SEMESTRE = {{ etiquetas_semestre|tojson }};</script>
 <div class="p-8">
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-indigo-700">Ingesta Manual de Datos y Justificación</h1>
@@ -295,7 +296,10 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Periodo</label>
-                        <input type="text" name="periodo" id="med-periodo" required placeholder="Ej: 2026-08" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                        <select name="periodo" id="med-periodo" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="" disabled selected>Seleccione período...</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1" id="med-periodo-hint"></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Estudiante</label>
@@ -367,7 +371,49 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Periodo</label>
-                    <input type="text" name="periodo" required placeholder="Ej: 2026-03" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                    <select name="periodo" id="f4-periodo" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="" disabled selected>Seleccione período...</option>
+                        {% for m in meses_gestion %}
+                        <option value="{{ m }}">{{ m }}</option>
+                        {% endfor %}
+                        {% for k in semestres %}
+                        <option value="{{ k }}">{{ etiquetas_semestre[k] }}</option>
+                        {% endfor %}
+                    </select>
+                    <p id="f4-periodo-hint" class="text-xs text-gray-400 mt-1 leading-relaxed">Seleccione el período: un mes usa solo sus horas; un semestre reparte las horas en partes iguales entre sus meses.</p>
+                    <script>
+                    (function() {
+                        var sel = document.getElementById('f4-periodo');
+                        var hint = document.getElementById('f4-periodo-hint');
+                        if (!sel || !hint) return;
+                        var RANGOS = {{ semestres|tojson }};
+                        function nMeses(a, b) {
+                            var ma = parseInt(a.slice(5, 7), 10), mb = parseInt(b.slice(5, 7), 10);
+                            var ya = parseInt(a.slice(0, 4), 10), yb = parseInt(b.slice(0, 4), 10);
+                            return (yb - ya) * 12 + (mb - ma) + 1;
+                        }
+                        function actualizar() {
+                            var v = sel.value;
+                            var rango = RANGOS[v];
+                            if (rango) {
+                                hint.className = 'text-xs mt-1 leading-relaxed text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1.5';
+                                hint.innerHTML = '<i class="fas fa-info-circle mr-1"></i><strong>Semestre:</strong> las horas de esta carga ' +
+                                    'se reparten <strong>en partes iguales</strong> entre los ' + nMeses(rango[0], rango[1]) +
+                                    ' meses del rango (' + rango[0] + ' a ' + rango[1] + ') y el sistema genera un punto por mes en la ' +
+                                    'gráfica de evolución. Si prefiere usar las horas reales de cada mes, registre mes a mes.';
+                            } else if (v) {
+                                hint.className = 'text-xs text-gray-500 mt-1 leading-relaxed';
+                                hint.innerHTML = 'Mes individual: estas horas se imputan solo a <strong>' + v +
+                                    '</strong> y se genera un único punto para ese mes con sus horas reales.';
+                            } else {
+                                hint.className = 'text-xs text-gray-400 mt-1 leading-relaxed';
+                                hint.textContent = 'Seleccione el período: un mes usa solo sus horas; un semestre reparte las horas en partes iguales entre sus meses.';
+                            }
+                        }
+                        sel.addEventListener('change', actualizar);
+                        actualizar();
+                    })();
+                    </script>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Horas Aplicadas (Misma para el grupo)</label>
@@ -500,6 +546,161 @@
     }
 
     // NUEVO: Cargar indicadores de una acción vía AJAX (F-2 - Etapa 13)
+    // Asignatura derivada de la acción (compartida por el select de periodos
+    // y por la precarga de notas de Mediciones de Indicadores).
+    var medAsigActual = '';
+
+    function esSemestre(periodo) {
+        return !!(window.SEMESTRES && window.SEMESTRES[periodo]);
+    }
+
+    function derivarAsignaturaMed(callback) {
+        var select = document.getElementById('med-accion-select');
+        var accionId = select ? select.value : '';
+        if (!accionId) {
+            medAsigActual = '';
+            callback('');
+            return;
+        }
+        fetch('/ingesta/indicadores_de_accion/' + accionId)
+            .then(function(r) { return r.json(); })
+            .then(function(indicadores) {
+                var asig = '';
+                for (var i = 0; i < indicadores.length; i++) {
+                    if (indicadores[i].asignatura && indicadores[i].asignatura !== 'Transversal') {
+                        asig = indicadores[i].asignatura;
+                        break;
+                    }
+                }
+                medAsigActual = asig;
+                callback(asig);
+            })
+            .catch(function() {
+                medAsigActual = '';
+                callback('');
+            });
+    }
+
+    function _opcion(texto, valor, seleccionada) {
+        var o = document.createElement('option');
+        o.value = valor;
+        o.textContent = texto;
+        if (seleccionada) o.selected = true;
+        return o;
+    }
+
+    // Select dinámico de periodos (mismo patrón que F-2 Parte 1) + semestres
+    function cargarPeriodosMed() {
+        var perSel = document.getElementById('med-periodo');
+        var estSel = document.getElementById('med-estudiante');
+        var hint = document.getElementById('med-periodo-hint');
+        if (!perSel || !estSel) return;
+
+        function poblar(asig) {
+            var eid = estSel.value;
+            perSel.innerHTML = '';
+            perSel.appendChild(_opcion('Seleccione período...', '', true));
+
+            if (!eid || !asig) {
+                if (hint) {
+                    var accionSel = document.getElementById('med-accion-select');
+                    if (!eid) {
+                        hint.textContent = 'Seleccione un estudiante para ver sus periodos.';
+                    } else if (!accionSel || !accionSel.value) {
+                        hint.textContent = 'Seleccione una acción para derivar la asignatura y sus periodos.';
+                    } else {
+                        hint.textContent = 'La acción no tiene asignatura asociada (transversal): no hay notas que precargar.';
+                    }
+                }
+                return;
+            }
+
+            fetch('/ingesta/periodos_estudiante?estudiante_id=' + encodeURIComponent(eid) +
+                  '&asignatura=' + encodeURIComponent(asig))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var periodos = data.periodos || [];
+                    perSel.innerHTML = '';
+                    perSel.appendChild(_opcion('Seleccione período...', '', true));
+
+                    periodos.forEach(function(p) {
+                        perSel.appendChild(_opcion(p, p, false));
+                    });
+
+                    // Opciones fijas de promedio semestral (rango fijo de meses)
+                    var semestres = window.SEMESTRES || {};
+                    var etiquetas = window.ETIQUETAS_SEMESTRE || {};
+                    Object.keys(semestres).forEach(function(k) {
+                        perSel.appendChild(_opcion(etiquetas[k] || k, k, false));
+                    });
+
+                    if (hint) {
+                        hint.textContent = periodos.length
+                            ? ''
+                            : 'Sin registros previos: solo quedan las opciones de promedio semestral.';
+                    }
+
+                    if (periodos.length) {
+                        perSel.value = periodos[periodos.length - 1];
+                        precargarMed();
+                    }
+                })
+                .catch(function() {
+                    if (hint) hint.textContent = 'No se pudieron cargar los periodos.';
+                });
+        }
+
+        if (medAsigActual) poblar(medAsigActual);
+        else derivarAsignaturaMed(poblar);
+    }
+
+    // Referencia de notas: periodo puntual o promedio del semestre
+    function precargarMed() {
+        var perSel = document.getElementById('med-periodo');
+        var estSel = document.getElementById('med-estudiante');
+        var ref = document.getElementById('med-notas-ref');
+        var refText = document.getElementById('med-notas-text');
+        if (!perSel || !estSel || !ref || !refText) return;
+
+        var per = perSel.value;
+        var eid = estSel.value;
+        var asig = medAsigActual;
+        if (!eid || !per || !asig) return;
+
+        var sem = esSemestre(per) ? window.SEMESTRES[per] : null;
+        var url = '/ingesta/notas_periodos?estudiante_id=' + encodeURIComponent(eid) +
+                  '&asignatura=' + encodeURIComponent(asig) +
+                  '&desde=' + encodeURIComponent(sem ? sem[0] : per) +
+                  '&hasta=' + encodeURIComponent(sem ? sem[1] : per);
+
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!ref || !refText) return;
+                ref.classList.remove('hidden');
+
+                if (!data.existe) {
+                    refText.textContent = sem
+                        ? 'Sin registros en App Ponderado para ' + asig + ' entre ' + sem[0] + ' y ' + sem[1] + '.'
+                        : 'Sin registro previo en App Ponderado para ' + asig + ' en ' + per;
+                    return;
+                }
+
+                if (sem) {
+                    var total = data.n_periodos_rango || data.n_periodos;
+                    refText.textContent = 'Promedio semestre (' + sem[0] + ' a ' + sem[1] + '): ' +
+                        data.promedio_notas + ' | Asistencia: ' + data.porcentaje_asistencia + '%' +
+                        ' · ' + data.n_periodos + ' de ' + total + ' meses con datos' +
+                        ' · notas ' + data.nota_min + '–' + data.nota_max;
+                } else {
+                    refText.textContent = 'Notas: ' + data.promedio_notas +
+                        ' | Asistencia: ' + data.porcentaje_asistencia + '%' +
+                        ' (' + per + ' · ' + asig + ')';
+                }
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
     function cargarIndicadoresMedicion() {
         var select = document.getElementById('med-accion-select');
         var accionId = select.value;
@@ -515,12 +716,7 @@
         fetch('/ingesta/indicadores_de_accion/' + accionId)
             .then(function(r) { return r.json(); })
             .then(function(indicadores) {
-                // Derivar asignatura y precargar notas
-                var medAccion = document.getElementById('med-accion-select');
-                var medEst = document.getElementById('med-estudiante');
-                var medPer = document.getElementById('med-periodo');
-                var medRef = document.getElementById('med-notas-ref');
-                var medRefText = document.getElementById('med-notas-text');
+                // Derivar asignatura desde los indicadores y recargar periodos + notas
                 var asig = '';
                 for (var i = 0; i < indicadores.length; i++) {
                     if (indicadores[i].asignatura && indicadores[i].asignatura !== 'Transversal') {
@@ -528,27 +724,9 @@
                         break;
                     }
                 }
-                if (medEst && medPer && asig) {
-                    var eid = medEst.value;
-                    var per = medPer.value.trim();
-                    if (eid && per) {
-                        fetch('/ingesta/notas_estudiante?estudiante_id=' + encodeURIComponent(eid) +
-                              '&periodo=' + encodeURIComponent(per) +
-                              '&asignatura=' + encodeURIComponent(asig))
-                            .then(function(r){ return r.json(); })
-                            .then(function(data) {
-                                if (medRef && medRefText) {
-                                    medRef.classList.remove('hidden');
-                                    if (data.existe) {
-                                        medRefText.textContent = 'Notas: ' + data.promedio_notas + ' | Asistencia: ' + data.porcentaje_asistencia + ' (precargado desde App Ponderado para ' + asig + ')';
-                                    } else {
-                                        medRefText.textContent = 'Sin registro previo en App Ponderado para ' + asig + ' en ' + per;
-                                    }
-                                }
-                            })
-                            .catch(function() { /* silencioso */ });
-                    }
-                }
+                medAsigActual = asig;
+                cargarPeriodosMed();
+
                 if (indicadores.length === 0) {
                     container.innerHTML = '<p class="text-sm text-amber-600 text-center py-4 border border-amber-200 rounded-lg bg-amber-50"><i class="fas fa-exclamation-triangle"></i> Esta acción no tiene indicadores definidos. Use F-1 para agregarlos, o use F-4 para el flujo legacy (notas/asistencia).</p>';
                     return;
@@ -671,53 +849,14 @@
     if (estSel) estSel.addEventListener('change', cargarPeriodos);
     if (perSel) perSel.addEventListener('change', precargar);
 
-    // Precarga de notas en Mediciones de Indicadores
+    // Mediciones de Indicadores: el cambio de acción ya dispara
+    // cargarIndicadoresMedicion() desde el atributo onchange del select,
+    // y esa función deriva la asignatura y llama a cargarPeriodosMed().
     var medEst = document.getElementById('med-estudiante');
     var medPer = document.getElementById('med-periodo');
-    var medAccion = document.getElementById('med-accion-select');
-    var medRef = document.getElementById('med-notas-ref');
-    var medRefText = document.getElementById('med-notas-text');
 
-    function precargarMed() {
-        if (!medAccion || !medEst || !medPer) return;
-        var aid = medAccion.value;
-        var eid = medEst.value;
-        var per = medPer.value.trim();
-        if (!aid || !eid || !per) return;
-        fetch('/ingesta/indicadores_de_accion/' + aid)
-            .then(function(r){ return r.json(); })
-            .then(function(inds) {
-                var asig = '';
-                for (var i = 0; i < inds.length; i++) {
-                    if (inds[i].asignatura && inds[i].asignatura !== 'Transversal') {
-                        asig = inds[i].asignatura;
-                        break;
-                    }
-                }
-                if (!asig) return;
-                fetch('/ingesta/notas_estudiante?estudiante_id=' + encodeURIComponent(eid) +
-                      '&periodo=' + encodeURIComponent(per) +
-                      '&asignatura=' + encodeURIComponent(asig))
-                    .then(function(r){ return r.json(); })
-                    .then(function(data) {
-                        if (medRef && medRefText) {
-                            medRef.classList.remove('hidden');
-                            if (data.existe) {
-                                medRefText.textContent = 'Notas: ' + data.promedio_notas + ' | Asistencia: ' + data.porcentaje_asistencia + ' (precargado desde App Ponderado para ' + asig + ')';
-                            } else {
-                                medRefText.textContent = 'Sin registro previo en App Ponderado para ' + asig + ' en ' + per;
-                            }
-                        }
-                    })
-                    .catch(function() { /* silencioso */ });
-            })
-            .catch(function() { /* silencioso */ });
-    }
-
-    if (medAccion) medAccion.addEventListener('change', precargarMed);
-    if (medEst) medEst.addEventListener('change', precargarMed);
-    if (medPer) medPer.addEventListener('blur', precargarMed);
+    if (medEst) medEst.addEventListener('change', cargarPeriodosMed);
+    if (medPer) medPer.addEventListener('change', precargarMed);
 })();
-</script>
 </script>
 {% endblock %}

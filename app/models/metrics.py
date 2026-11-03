@@ -102,7 +102,13 @@ class MetricaSIGE(db.Model):
 
 
 class ParticipacionAccion(db.Model):
-    """Seguimiento de participantes por acción PME (F-4)."""
+    """Seguimiento de participantes por acción PME (F-4).
+
+    `periodo` identifica el mes ("2026-10") o semestre ("2026-S1") al que
+    pertenecen las horas registradas. Es nullable para compatibilidad con las
+    filas antiguas: esas filas se consideran "sin periodo" y siguen sumando
+    en cualquier calculo.
+    """
 
     __tablename__ = "participaciones_accion"
 
@@ -113,6 +119,9 @@ class ParticipacionAccion(db.Model):
     accion_id = db.Column(
         db.Integer, db.ForeignKey("acciones_pme.id"), nullable=False
     )
+
+    # Periodo ("YYYY-MM" o "YYYY-S1/S2"). NULL = registro legacy sin periodo.
+    periodo = db.Column(db.String(10), nullable=True, index=True)
 
     horas_asistencia = db.Column(db.Float, default=0.0, nullable=False)
     asistencia_talleres = db.Column(db.Integer, default=0, nullable=False)

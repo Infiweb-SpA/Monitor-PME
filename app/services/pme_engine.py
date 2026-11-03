@@ -8,6 +8,7 @@ Incluye:
 - Índice de Progreso de la Acción (IPA) para múltiples indicadores
 """
 import numpy as np
+from sqlalchemy import or_
 from app.extensions import db
 from app.models.metrics import (RegistroAppPonderado, ParticipacionAccion,
                                  IndicadorAccion, Estudiante,
@@ -170,9 +171,21 @@ def _primer_periodo(estudiante_id):
     return reg.periodo if reg else None
 
 
-def _horas_por_estudiante(accion_id):
-    """Acumula horas de participación por estudiante (múltiples cargas se suman)."""
-    parts = ParticipacionAccion.query.filter_by(accion_id=accion_id).all()
+def _horas_por_estudiante(accion_id, periodo=None):
+    """Acumula horas de participación por estudiante (múltiples cargas se suman).
+
+    Si se indica `periodo` (mes "2026-10" o semestre "2026-S1"), solo suman
+    las filas de ese periodo. Las filas antiguas sin periodo (NULL) se
+    conservan como compatibles y suman en cualquier calculo, para no romper
+    los datos cargados antes de existir el campo.
+    """
+    query = ParticipacionAccion.query.filter_by(accion_id=accion_id)
+    if periodo is not None:
+        query = query.filter(or_(
+            ParticipacionAccion.periodo == periodo,
+            ParticipacionAccion.periodo.is_(None),
+        ))
+    parts = query.all()
     horas = {}
     for p in parts:
         horas[p.estudiante_id] = horas.get(p.estudiante_id, 0) + p.horas_asistencia
@@ -183,22 +196,110 @@ def _horas_por_estudiante(accion_id):
 # ORQUESTADOR PRINCIPAL
 # ============================================================
 
+# Meses que componen cada semestre de gestión (formato periodo "YYYY-MM")
+SEMESTRES_MESES = {
+    "S1": ("03", "04", "05", "06"),
+    "S2": ("07", "08", "09", "10"),
+}
+
+
+def desglosar_periodo(periodo):
+    """Devuelve los periodos mensuales que componen `periodo`.
+
+    - Mes ("2026-07")      -> ["2026-07"]                 (sin cambios)
+    - Semestre ("2026-S1") -> ["2026-03", ..., "2026-06"] (se desglosa)
+    - Otro formato         -> [periodo]                   (se procesa tal cual)
+    """
+    if not periodo or "-" not in str(periodo):
+        return [periodo]
+    anio, _, clave = str(periodo).partition("-")
+    meses = SEMESTRES_MESES.get(clave)
+    if not meses or not anio.isdigit():
+        return [periodo]
+    return [f"{anio}-{m}" for m in meses]
+
+
 def procesar_indicadores_accion(accion_id, periodo):
-    """Dispatcher: detecta modelo nuevo (DefinicionIndicador) vs legacy."""
+    """Dispatcher: detecta modelo nuevo (DefinicionIndicador) vs legacy.
+
+    Si `periodo` es un semestre se desglosa en sus meses: las horas del
+    semestre (más las filas sin periodo) se reparten **en partes iguales**
+    entre los meses del rango y se escribe una fila por mes en
+    `indicadores_accion`. Si el usuario registró mes a mes, `periodo` ya es un
+    mes y el comportamiento es el de siempre: una fila, con las horas reales
+    de ese mes.
+    """
     accion = AccionPME.query.get(accion_id)
     if not accion:
         return None
     definiciones = DefinicionIndicador.query.filter_by(
         accion_id=accion_id, activo=True
     ).all()
-    if definiciones:
-        return _procesar_nuevo_modelo(accion, definiciones, periodo)
-    return _procesar_legacy(accion, periodo)
+
+    meses = desglosar_periodo(periodo)
+    if len(meses) == 1:
+        if definiciones:
+            return _procesar_nuevo_modelo(accion, definiciones, periodo)
+        return _procesar_legacy(accion, periodo)
+
+    # --- Semestre: reparto equitativo de horas entre sus meses ---
+    filas = ParticipacionAccion.query.filter(
+        ParticipacionAccion.accion_id == accion.id,
+        or_(
+            ParticipacionAccion.periodo == periodo,   # horas del semestre
+            ParticipacionAccion.periodo.is_(None),    # legacy sin periodo
+            ParticipacionAccion.periodo.in_(meses),   # horas ya mensuales
+        ),
+    ).all()
+    if not filas:
+        return None
+
+    # base = horas a repartir (semestre + sin periodo)
+    # propias = horas ya imputadas a un mes concreto del rango
+    base = {}
+    propias = {m: {} for m in meses}
+    for p in filas:
+        if p.periodo in propias:
+            propias[p.periodo][p.estudiante_id] = (
+                propias[p.periodo].get(p.estudiante_id, 0.0) + p.horas_asistencia
+            )
+        else:
+            base[p.estudiante_id] = base.get(p.estudiante_id, 0.0) + p.horas_asistencia
+
+    n = len(meses)
+    horas_por_mes = {}
+    for m in meses:
+        h = {est: v / n for est, v in base.items()}   # reparto equitativo
+        for est, v in propias[m].items():             # horas reales del mes
+            h[est] = h.get(est, 0.0) + v
+        horas_por_mes[m] = h
+
+    ultimo = None
+    for m in meses:
+        if definiciones:
+            ind = _procesar_nuevo_modelo(accion, definiciones, m,
+                                         horas=horas_por_mes[m], periodo_ref=periodo)
+        else:
+            ind = _procesar_legacy(accion, m, horas=horas_por_mes[m], periodo_ref=periodo)
+        if ind:
+            ultimo = ind
+
+    if ultimo:
+        # La fila agregada del semestre queda reemplazada por las mensuales
+        IndicadorAccion.query.filter_by(accion_id=accion.id, mes=periodo).delete()
+        db.session.commit()
+    return ultimo
 
 
-def _procesar_legacy(accion, periodo):
-    """Flujo original: IEA + Pearson notas/asistencia + proyección + semáforo."""
-    horas_por_est = _horas_por_estudiante(accion.id)
+def _procesar_legacy(accion, periodo, horas=None, periodo_ref=None):
+    """Flujo original: IEA + Pearson notas/asistencia + proyección + semáforo.
+
+    `horas` inyecta las horas ya repartidas por el desglose de un semestre
+    (si es None se calculan como siempre: horas del periodo + sin periodo).
+    `periodo_ref` es el semestre original y se usa como respaldo cuando el mes
+    no tiene datos propios en App Ponderado.
+    """
+    horas_por_est = horas if horas is not None else _horas_por_estudiante(accion.id, periodo)
     if not horas_por_est:
         return None
 
@@ -211,6 +312,8 @@ def _procesar_legacy(accion, periodo):
 
     for est_id in est_ids:
         nota_actual = _nota_promedio(est_id, periodo)
+        if nota_actual is None and periodo_ref:
+            nota_actual = _nota_promedio(est_id, periodo_ref)
         if nota_actual is None:
             continue
         periodo_inicial = _primer_periodo(est_id)
@@ -221,6 +324,8 @@ def _procesar_legacy(accion, periodo):
         y_deltas.append(nota_actual - nota_inicial)
         notas_actuales.append(nota_actual)
         asist_act = _asistencia_promedio(est_id, periodo)
+        if asist_act is None and periodo_ref:
+            asist_act = _asistencia_promedio(est_id, periodo_ref)
         asist_ini = _asistencia_promedio(est_id, periodo_inicial) if periodo_inicial else None
         if asist_act is not None:
             asist_actuales.append(asist_act)
@@ -283,9 +388,14 @@ def _procesar_legacy(accion, periodo):
     return indicador
 
 
-def _procesar_nuevo_modelo(accion, definiciones, periodo):
-    """Flujo nuevo: progreso + IPA + Pearson progreso + proyección + semáforo."""
-    horas_por_est = _horas_por_estudiante(accion.id)
+def _procesar_nuevo_modelo(accion, definiciones, periodo, horas=None, periodo_ref=None):
+    """Flujo nuevo: progreso + IPA + Pearson progreso + proyección + semáforo.
+
+    `horas` inyecta las horas ya repartidas por el desglose de un semestre
+    (si es None se calculan como siempre). `periodo_ref` es el semestre
+    original: si el mes no tiene medición propia, se usa la del semestre.
+    """
+    horas_por_est = horas if horas is not None else _horas_por_estudiante(accion.id, periodo)
     if not horas_por_est:
         return None
 
@@ -307,6 +417,8 @@ def _procesar_nuevo_modelo(accion, definiciones, periodo):
         progresos, deltas, x_horas = [], [], []
         for est_id in est_ids:
             med = meds_map.get((definicion.id, est_id, periodo))
+            if not med and periodo_ref:
+                med = meds_map.get((definicion.id, est_id, periodo_ref))
             if not med:
                 continue
             res = calcular_progreso_indicador(
@@ -328,8 +440,12 @@ def _procesar_nuevo_modelo(accion, definiciones, periodo):
         for est_id in est_ids:
             if accion.indicador_tipo == "Promedio Notas":
                 actual = _nota_promedio(est_id, periodo)
+                if actual is None and periodo_ref:
+                    actual = _nota_promedio(est_id, periodo_ref)
             else:
                 actual = _asistencia_promedio(est_id, periodo)
+                if actual is None and periodo_ref:
+                    actual = _asistencia_promedio(est_id, periodo_ref)
             if actual is None:
                 continue
             res = calcular_progreso_indicador(
