@@ -38,11 +38,11 @@ def create_app(config_name="default"):
         db.create_all()
 
         # Migraciones ligeras: create_all() no agrega columnas a tablas que
-        # ya existen, así que se asegura la columna nueva de forma idempotente.
-        _asegurar_columna(
-            "participaciones_accion", "periodo",
-            "ALTER TABLE participaciones_accion ADD COLUMN periodo VARCHAR(10)",
-        )
+        # ya existen. Se asegura que todas las columnas definidas en los
+        # modelos estén presentes en las tablas físicas (idempotente, no
+        # borra datos). Esto permite actualizar una base de datos antigua
+        # sin necesidad de recrearla.
+        _asegurar_columnas_faltantes()
         db.session.commit()
 
     import json
@@ -53,12 +53,7 @@ def create_app(config_name="default"):
 
 
 def _asegurar_columna(tabla, columna, ddl):
-    """Agrega una columna faltante a una tabla ya existente (idempotente).
-
-    El proyecto no usa Flask-Migrate y `create_all()` no altera tablas
-    existentes, así que se verifica con PRAGMA/inspección antes de ejecutar
-    el ALTER. Si la columna ya existe, no hace nada.
-    """
+    """Agrega una columna faltante a una tabla ya existente (idempotente)."""
     from sqlalchemy import inspect, text
     from app.extensions import db
 
@@ -68,6 +63,40 @@ def _asegurar_columna(tabla, columna, ddl):
     columnas = [c["name"] for c in insp.get_columns(tabla)]
     if columna not in columnas:
         db.session.execute(text(ddl))
+
+
+def _asegurar_columnas_faltantes():
+    """Agrega a cada tabla existente las columnas que falten según los modelos.
+
+    `db.create_all()` crea tablas nuevas pero no altera las existentes. Esta
+    función compara el esquema de SQLAlchemy con el de la base de datos y
+    ejecuta `ALTER TABLE ... ADD COLUMN` por cada columna faltante, de forma
+    idempotente y sin borrar datos. Si una columna no puede agregarse (por
+    ejemplo, NOT NULL sin valor por defecto en SQLite), se omite con un
+    aviso en lugar de romper el arranque.
+    """
+    from sqlalchemy import inspect, text
+    from app.extensions import db
+
+    insp = inspect(db.engine)
+    for table_name, table in db.metadata.tables.items():
+        if not insp.has_table(table_name):
+            continue
+        existentes = {c["name"] for c in insp.get_columns(table_name)}
+        for col in table.columns:
+            if col.name in existentes:
+                continue
+            try:
+                tipo_sql = col.type.compile(dialect=db.engine.dialect)
+            except Exception:
+                tipo_sql = "TEXT"
+            ddl = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {tipo_sql}"
+            try:
+                db.session.execute(text(ddl))
+                print(f"  -> columna agregada: {table_name}.{col.name}")
+            except Exception as exc:
+                db.session.rollback()
+                print(f"  -> no se pudo agregar {table_name}.{col.name}: {exc}")
 
 
 def _registrar_blueprints(app):
