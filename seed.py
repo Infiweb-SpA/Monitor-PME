@@ -41,7 +41,9 @@ from app.services.pme_engine import (
 )
 
 fake = Faker("es_CL")
-app = create_app("development")
+# Usa el entorno definido por la variable de entorno (production en Railway)
+# para que seed apunte a la misma base de datos que la app desplegada.
+app = create_app(os.environ.get("FLASK_ENV", "development"))
 
 # =============================================================================
 # CONFIGURACIÓN DE SEMILLA
@@ -359,10 +361,21 @@ def crear_indicadores(acciones):
 
 def main():
     """Ejecuta la población completa de la base de datos."""
+    reset = "--reset" in sys.argv
     with app.app_context():
         print("=" * 60)
         print("  SEED EDUGEST PME - Población de Datos Pseudo-Reales")
         print("=" * 60)
+
+        # Guardia: evitar borrar datos existentes salvo que se pida --reset
+        if not reset:
+            try:
+                if User.query.count() > 0:
+                    print("\nLa base de datos ya contiene datos. No se hizo nada.")
+                    print("Para recrearla desde cero, ejecuta: python seed.py --reset")
+                    return
+            except Exception:
+                pass
 
         db.drop_all()
         db.create_all()
